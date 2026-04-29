@@ -78,5 +78,40 @@ class Laps(Base):
     track_status = Column(Integer, ForeignKey('track_statuses.id'))
 
 
+class LapsCleaned(Base):
+    __tablename__ = 'laps_cleaned'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(Integer, ForeignKey('sessions.id'))
+
+    driver_abbr = Column(String)
+    driver_num = Column(Integer)
+
+    position = Column(Integer)
+
+    lap_time = Column(Float)
+    lap_s1_time = Column(Float)
+    lap_s2_time = Column(Float)
+    lap_s3_time = Column(Float)
+    lap_number = Column(Integer)
+    stint_number = Column(Integer)
+    tyre_age = Column(Integer)
+    tyre_type = Column(Integer, ForeignKey('tyres.id'))
+    is_deleted = Column(Boolean)
+
+    air_temp = Column(Float)
+    track_temp = Column(Float)
+    humidity = Column(Float)
+    is_rain = Column(Boolean)
+    wind_direction = Column(Integer)
+    wind_speed = Column(Float)
+
+    track_status = Column(Integer, ForeignKey('track_statuses.id'))
+
+    is_first_lap = Column(Boolean)
+    is_last_lap = Column(Boolean)
+    is_pit_in_lap = Column(Boolean)
+    is_pit_out_lap = Column(Boolean)
+
+
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
 Base.metadata.create_all(engine)
