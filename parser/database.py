@@ -113,5 +113,20 @@ class LapsCleaned(Base):
     is_pit_out_lap = Column(Boolean)
 
 
+class StyleInfo(Base):
+    __tablename__ = 'style_info'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(Integer, ForeignKey('sessions.id'))
+    driver_abbr = Column(String)
+    team = Column(String)
+    linestyle = Column(String)
+    marker = Column(String)
+    color = Column(String)
+    facecolor = Column(String)
+    edgecolor = Column(String)
+
+
+
+
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
 Base.metadata.create_all(engine)
