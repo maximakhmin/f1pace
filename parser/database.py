@@ -58,6 +58,9 @@ class Laps(Base):
 
     position = Column(Integer)
 
+    session_time = Column(Float)
+    pit_in_session_time = Column(Float)
+    pit_out_session_time = Column(Float)
     lap_time = Column(Float)
     lap_s1_time = Column(Float)
     lap_s2_time = Column(Float)
@@ -88,6 +91,9 @@ class LapsCleaned(Base):
 
     position = Column(Integer)
 
+    session_time = Column(Float)
+    pit_in_session_time = Column(Float)
+    pit_out_session_time = Column(Float)
     lap_time = Column(Float)
     lap_s1_time = Column(Float)
     lap_s2_time = Column(Float)
