@@ -20,7 +20,7 @@ class Tracks(Base):
 class Events(Base):
     __tablename__ = 'events'
     id = Column(Integer, primary_key=True)
-    circuit_id = Column(Integer, ForeignKey('tracks.id'))
+    track_id = Column(Integer, ForeignKey('tracks.id'))
     year = Column(Integer)
     round = Column(Integer)
     is_sprint = Column(Boolean)
@@ -46,16 +46,31 @@ class TrackStatuses(Base):
     __tablename__ = 'track_statuses'
     id = Column(Integer, primary_key=True) 
     name = Column(String)
- 
+
+class Drivers(Base):
+    __tablename__ = 'drivers'
+    id = Column(Integer, primary_key=True)  
+    abbr = Column(String)
+    first_name = Column(String)
+    last_name = Column(String)
+
+class Results(Base):
+    __tablename__ = 'results'
+    id = Column(Integer, primary_key=True) 
+    session_id = Column(Integer, ForeignKey('sessions.id'))
+    driver_id = Column(Integer, ForeignKey('drivers.id'))
+    result_status_id = Column(Integer, ForeignKey('result_statuses.id'))
+    position = Column(Integer)   
+    time = Column(Float)
+    laps = Column(Integer)
+    classified_position = Column(String(2))
 
 class Laps(Base):
     __tablename__ = 'laps'
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(Integer, ForeignKey('sessions.id'))
-
-    driver_abbr = Column(String)
-    driver_num = Column(Integer)
-
+    driver_id = Column(Integer, ForeignKey('drivers.id'))
+    
     position = Column(Integer)
 
     session_time = Column(Float)
@@ -71,67 +86,37 @@ class Laps(Base):
     tyre_type = Column(Integer, ForeignKey('tyres.id'))
     is_deleted = Column(Boolean)
 
-    air_temp = Column(Float)
-    track_temp = Column(Float)
-    humidity = Column(Float)
-    is_rain = Column(Boolean)
-    wind_direction = Column(Integer)
-    wind_speed = Column(Float)
-
     track_status = Column(Integer, ForeignKey('track_statuses.id'))
 
-
-class LapsCleaned(Base):
-    __tablename__ = 'laps_cleaned'
+class Weather(Base):
+    __tablename__ = 'weather'
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(Integer, ForeignKey('sessions.id'))
-
-    driver_abbr = Column(String)
-    driver_num = Column(Integer)
-
-    position = Column(Integer)
-
     session_time = Column(Float)
-    pit_in_session_time = Column(Float)
-    pit_out_session_time = Column(Float)
-    lap_time = Column(Float)
-    lap_s1_time = Column(Float)
-    lap_s2_time = Column(Float)
-    lap_s3_time = Column(Float)
-    lap_number = Column(Integer)
-    stint_number = Column(Integer)
-    tyre_age = Column(Integer)
-    tyre_type = Column(Integer, ForeignKey('tyres.id'))
-    is_deleted = Column(Boolean)
-
     air_temp = Column(Float)
     track_temp = Column(Float)
     humidity = Column(Float)
     is_rain = Column(Boolean)
     wind_direction = Column(Integer)
     wind_speed = Column(Float)
-
-    track_status = Column(Integer, ForeignKey('track_statuses.id'))
-
-    is_first_lap = Column(Boolean)
-    is_last_lap = Column(Boolean)
-    is_pit_in_lap = Column(Boolean)
-    is_pit_out_lap = Column(Boolean)
-
 
 class StyleInfo(Base):
     __tablename__ = 'style_info'
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(Integer, ForeignKey('sessions.id'))
-    driver_abbr = Column(String)
+    driver_id = Column(Integer, ForeignKey('drivers.id'))
     team = Column(String)
+    number = Column(Integer)
     linestyle = Column(String)
     marker = Column(String)
     color = Column(String)
     facecolor = Column(String)
     edgecolor = Column(String)
 
-
+class ResultStatuses(Base):
+    __tablename__ = 'result_statuses'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    name = Column(String)
 
 
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')

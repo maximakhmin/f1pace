@@ -1,0 +1,100 @@
+Table tracks {
+  id integer [primary key]
+  circuit_id varchar
+  country varchar
+  location varchar
+  circuit_name varchar
+  lat float
+  long float
+}
+
+Table events {
+  id integer [primary key]
+  track_id integer [ref: > tracks.id]
+  year integer
+  round integer
+  is_sprint boolean
+}
+
+Table session_types {
+  id integer [primary key]
+  name varchar
+}
+
+Table sessions {
+  id integer [primary key]
+  event_id integer [ref: > events.id]
+  session_type integer [ref: > session_types.id]
+  datetime_start_utc datetime
+}
+
+Table tyres {
+  id integer [primary key]
+  name varchar
+}
+
+Table track_statuses {
+  id integer [primary key]
+  name varchar
+}
+
+Table drivers {
+  id integer [primary key]
+  abbr varchar
+  first_name varchar
+  last_name varchar
+}
+
+Table results {
+  id integer [primary key]
+  session_id integer [ref: > sessions.id]
+  driver_id integer [ref: > drivers.id]
+  position integer
+  time float
+  laps integer
+}
+
+Table laps {
+  id integer [primary key, increment]
+  session_id integer [ref: > sessions.id]
+  driver_id integer [ref: > drivers.id]
+  position integer
+  session_time float
+  pit_in_session_time float
+  pit_out_session_time float
+  lap_time float
+  lap_s1_time float
+  lap_s2_time float
+  lap_s3_time float
+  lap_number integer
+  stint_number integer
+  tyre_age integer
+  tyre_type integer [ref: > tyres.id]
+  is_deleted boolean
+  track_status integer [ref: > track_statuses.id]
+}
+
+Table weather {
+  id integer [primary key, increment]
+  session_id integer [ref: > sessions.id]
+  session_time float
+  air_temp float
+  track_temp float
+  humidity float
+  is_rain boolean
+  wind_direction integer
+  wind_speed float
+}
+
+Table style_info {
+  id integer [primary key, increment]
+  session_id integer [ref: > sessions.id]
+  driver_id integer [ref: > drivers.id]
+  team varchar
+  number integer
+  linestyle varchar
+  marker varchar
+  color varchar
+  facecolor varchar
+  edgecolor varchar
+}
