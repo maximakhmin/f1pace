@@ -14,6 +14,9 @@ engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS
 statuses_info = pd.read_sql(f"SELECT id, name, color FROM track_statuses", engine)
 statuses_info = dict(zip(statuses_info["id"].values, zip(statuses_info["name"].values, statuses_info["color"].values)))
 
+tyres_info = pd.read_sql(f"SELECT id, name, color FROM tyres", engine)
+tyres_info = dict(zip(tyres_info["id"].values, zip(tyres_info["name"].values, tyres_info["color"].values)))
+
 query = """select s.id, e.year, e.round, st.name session_type, st.id session_type_id, t.country, t.circuit_name from sessions s
 join events e on s.event_id = e.id 
 join tracks t on e.track_id = t.id
@@ -30,8 +33,8 @@ def calculate_deltas(laps_1, laps_2, over_zero=False):
         if laps_1.loc[i, "track_status"] == 5:
             deltas.append(0)
         else:
-            lap_1_time = laps_1.loc[i, "session_time"]
-            lap_2_time = laps_2.loc[i, "session_time"]
+            lap_1_time = laps_1.loc[i, "session_time_end"]
+            lap_2_time = laps_2.loc[i, "session_time_end"]
             deltas.append(lap_2_time-lap_1_time)
 
     if not over_zero:
@@ -134,7 +137,7 @@ with col3:
 
 session_id = sessions[mask]["id"].values[0]
 
-laps = pd.read_sql(f"SELECT * FROM laps WHERE session_id = {session_id} ORDER BY driver_id, lap_number", engine)
+laps = pd.read_sql(f"SELECT * FROM laps_cleaned WHERE session_id = {session_id} ORDER BY driver_id, lap_number", engine)
 styles = pd.read_sql(f"SELECT * FROM style_info si join drivers d on si.driver_id = d.id WHERE session_id = {session_id} ORDER BY si.team DESC, d.id ", engine)
 if laps.empty:
     st.write("The results for this session have not been uploaded yet")
@@ -157,13 +160,11 @@ selected_drivers = st.pills(
     key="selected_drivers"
 )
 
-
-
 # ---------------------------- track status ----------------------------
 last_lap_number = laps["lap_number"].max()
 first_driver_id = laps[(laps["lap_number"] == last_lap_number) & (laps["position"] == 1)]["driver_id"].min()
 
-data = laps[laps["driver_id"] == first_driver_id]
+data = laps[laps["driver_id"] == first_driver_id].copy()
 data["formatted"] = data["track_status"].apply(lambda x : statuses_info[x][0])
 ranges, statuses_for_ranges = track_statuses_ranges(data)
 
@@ -206,7 +207,7 @@ added_colors = []
 
 for i in range(len(selected_drivers)):
     driver_id = selected_drivers[i]
-    data = laps[laps["driver_id"] == driver_id]
+    data = laps[(laps["driver_id"] == driver_id) & (laps["track_status"]!=5)].copy()
     if data.empty:
         continue
 
@@ -245,7 +246,27 @@ for i in range(len(selected_drivers)):
             hovertemplate="%{customdata}<extra></extra>",
             yaxis='y3'
         ),
+    )
 
+    data_tyres = data[(data["lap_number"] == 1) | (data["is_pit_out_lap"] == True)]
+    marker_colors = [tyres_info[tyre_type][1] for tyre_type in data_tyres['tyre_type']]
+    fig.add_trace(
+        go.Scatter(
+            x=data_tyres['lap_number'],
+            y=data_tyres['lap_time'],
+            name='Tyre info',
+            mode='markers',
+            marker=dict(symbol='circle', 
+                        size=12, 
+                        color=marker_colors,
+                        line=dict(
+                            width=1.5,
+                            color='grey' 
+                        ),
+            ),
+            yaxis='y3',
+            hoverinfo='skip',
+        ),
     )
 
 # ---------------------------- detla ----------------------------
@@ -356,6 +377,7 @@ fig.update_layout(
         spikedash="solid",
         spikecolor="grey", 
         dtick=1,
+        range=[0, last_lap_number]
     ),
 )
 
