@@ -59,7 +59,8 @@ Table laps {
   session_id integer [ref: > sessions.id]
   driver_id integer [ref: > drivers.id]
   position integer
-  session_time float
+  session_time_start float
+  session_time_end float
   pit_in_session_time float
   pit_out_session_time float
   lap_time float
