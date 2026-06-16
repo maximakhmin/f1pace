@@ -25,6 +25,17 @@ class Events(Base):
     round = Column(Integer)
     is_sprint = Column(Boolean)
 
+
+class TrackCorners(Base):
+    __tablename__ = 'track_corners'
+    id = Column(Integer, primary_key=True)
+    event_id = Column(Integer, ForeignKey('events.id'))
+    x = Column(Float)
+    y = Column(Float)
+    angle = Column(Float)
+    number = Column(Float)
+    rotation = Column(Float)
+
 class SessionTypes(Base):
     __tablename__ = 'session_types'
     id = Column(Integer, primary_key=True) 
