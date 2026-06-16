@@ -2,6 +2,9 @@ import ast
 from datetime import datetime
 import time
 import json
+import logging
+
+logger = logging.getLogger("Emulator")
 
 
 def parse_line(line):
@@ -13,7 +16,7 @@ def parse_line(line):
         data = json.loads(line)
         return data[0], data[1], data[2]
     except Exception as e:
-        print(f"Ошибка парсинга строки {line}: {e}")
+        logger.error(f"Ошибка парсинга строки {line}: {e}")
         return None
 
 
@@ -23,8 +26,8 @@ def run_live_emulation(file_path, real_time_path, speed_factor=1.0):
     speed_factor: позволяет ускорить эмуляцию (например, 2.0 — в два раза
     быстрее)
     """
-    print(
-        f"Запуск эмуляции... (Скорость: {speed_factor}x). Нажмите Ctrl+C для остановки."
+    logger.info(
+        f"Запуск эмуляции файла {file_path}... (Скорость: {speed_factor}x)."
     )
 
     prev_time = None

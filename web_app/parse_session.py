@@ -77,7 +77,7 @@ def set_status(row):
             conn.commit()
             return set_status(row)
         
-tyres = [
+TYRES = [
     'UNKNOWN',
     'SOFT', 
     'MEDIUM', 
@@ -86,9 +86,9 @@ tyres = [
     'WET',
 ]
 def convert_tyre(x):
-    if not x in tyres:
-        return tyres.index("UNKNOWN")
-    return tyres.index(x)
+    if not x in TYRES:
+        return TYRES.index("UNKNOWN")
+    return TYRES.index(x)
 
 def convert_track_status(x):
     priority = [5, 4, 6, 7, 2, 1, 3]

@@ -9,19 +9,11 @@ from parse_session import parse_results, parse_style, parse_laps, parse_weather
 import logging
 import time
 
-logging.basicConfig(
-    filename='parser.log',
-    filemode='w',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+
 
 load_dotenv()
-fastf1.logger.set_log_level('ERROR')
-logging.getLogger('fastf1').propagate = False
-
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
+parser_logger = logging.getLogger('Parser')
 
 
 def parse_and_save(session_year, session_round, session_type, session_id, event_id):
@@ -45,7 +37,7 @@ def parse_and_save(session_year, session_round, session_type, session_id, event_
                  len(curr_s_weather)!=0)
 
     if condition:
-        logging.info(f"Уже есть запись везде с session_id={session_id}")
+        parser_logger.info(f"Уже есть запись везде с session_id={session_id}")
         return
 
     fastf1_session = get_session(session_year, session_round, session_type)
@@ -55,33 +47,33 @@ def parse_and_save(session_year, session_round, session_type, session_id, event_
         if len(curr_s_results)==0:
             results = parse_results(fastf1_session, session_id)
             results.to_sql("results", engine, if_exists='append', index=False,)
-            logging.info(f"Запись в results с session_id={session_id}")
+            parser_logger.info(f"Запись в results с session_id={session_id}")
     except Exception as e:
-        logging.error(f"Ошикба записи в results с session_id={session_id} - {type(e)} - {e}")
+        parser_logger.error(f"Ошикба записи в results с session_id={session_id} - {type(e)} - {e}")
 
     try:
         if len(curr_s_style_info)==0:
             style_info = parse_style(fastf1_session, session_id)
             style_info.to_sql('style_info', engine, index=False, if_exists='append')
-            logging.info(f"Запись в style_info с session_id={session_id}")
+            parser_logger.info(f"Запись в style_info с session_id={session_id}")
     except Exception as e:
-        logging.error(f"Ошикба записи в style_info с session_id={session_id} - {type(e)} - {e}")
+        parser_logger.error(f"Ошикба записи в style_info с session_id={session_id} - {type(e)} - {e}")
 
     try:
         if len(curr_s_laps)==0:
             laps = parse_laps(fastf1_session, session_id)
             laps.to_sql('laps', engine, index=False, if_exists='append')
-            logging.info(f"Запись в laps с session_id={session_id}")
+            parser_logger.info(f"Запись в laps с session_id={session_id}")
     except Exception as e:
-        logging.error(f"Ошикба записи в laps с session_id={session_id} - {type(e)} - {e}")
+        parser_logger.error(f"Ошикба записи в laps с session_id={session_id} - {type(e)} - {e}")
 
     try:
         if len(curr_s_weather)==0:
             weather = parse_weather(fastf1_session, session_id)
             weather.to_sql('weather', engine, index=False, if_exists='append')
-            logging.info(f"Запись в weather с session_id={session_id}")
+            parser_logger.info(f"Запись в weather с session_id={session_id}")
     except Exception as e:
-        logging.error(f"Ошикба записи в weather с session_id={session_id} - {type(e)} - {e}")
+        parser_logger.error(f"Ошикба записи в weather с session_id={session_id} - {type(e)} - {e}")
     
 
 
@@ -93,9 +85,9 @@ def parse_and_save(session_year, session_round, session_type, session_id, event_
             corners["event_id"] = event_id
             corners["rotation"] = circuit_info.rotation
             corners.to_sql('track_corners', engine, if_exists='append', index=False)
-            logging.info(f"Запись в track_corners с session_id={session_id} event_id={event_id}")
+            parser_logger.info(f"Запись в track_corners с session_id={session_id} event_id={event_id}")
     except Exception as e:
-        logging.error(f"Ошикба записи в track_corners с session_id={session_id} event_id={event_id} - {type(e)} - {e}")
+        parser_logger.error(f"Ошикба записи в track_corners с session_id={session_id} event_id={event_id} - {type(e)} - {e}")
 
     
 
@@ -114,11 +106,11 @@ def parse(year):
             )
             
         except RateLimitExceededError as e: 
-            logging.error(f"Rate limit to fastf1, sleep 300s. Retrying session_id={sessions.loc[i, "id"]}...")
+            parser_logger.error(f"Rate limit to fastf1, sleep 300s. Retrying session_id={sessions.loc[i, "id"]}...")
             time.sleep(300)
             i -= 1
         except Exception as e:
-            logging.error(f"Ошикба парсинга с session_id={sessions.loc[i, "id"]} - {type(e)} - {e}")
+            parser_logger.error(f"Ошикба парсинга с session_id={sessions.loc[i, "id"]} : {type(e)}")
         finally:
             i += 1
 
