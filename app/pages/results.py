@@ -1,18 +1,17 @@
 import streamlit as st
 import pandas as pd
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-import os
+import requests
 
-load_dotenv()
-engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
+def check_status(response):
+    if response.status_code!=200:
+        st.write("The results for this session have not been uploaded yet")
+        st.stop()
 
-query = """select s.id, e.year, e.round, st.name session_type, st.id session_type_id, t.country, t.circuit_name from sessions s
-join events e on s.event_id = e.id 
-join tracks t on e.track_id = t.id
-join session_types st on s.session_type = st.id"""
+BASE_URL = "http://localhost:8000"
 
-sessions = pd.read_sql(query, engine)
+response = requests.get(BASE_URL+"/sessions")
+check_status(response)
+sessions = pd.read_json(response.text)
 
 
 st.set_page_config(
@@ -20,9 +19,7 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
 )
-st.title("Session results")
-
-
+st.title("Результаты сессий")
 
 available_years = sorted(sessions['year'].unique(), reverse=True)
 selected_year = st.selectbox("Выберите год", available_years)
@@ -51,19 +48,13 @@ mask &= (sessions["session_type"] == selected_session_type)
 selected_session = sessions[mask]["id"].values[0]
 selected_session_type = sessions[mask]["session_type_id"].values[0]
 
-query = f"""select r.position, r.classified_position, r.laps, r.time, 
-d.first_name, d.last_name, si.team, si.color 
-from results r
-join drivers d on r.driver_id = d.id
-join style_info si on si.driver_id=d.id and si.session_id=r.session_id
-where r.session_id={selected_session}
-order by r.position"""
 
-results = pd.read_sql(query, engine)
+response = requests.get(f"{BASE_URL}/results/{selected_session}")
+check_status(response)
+response.raise_for_status()
+results = pd.read_json(response.text)
 
-if results.empty:
-    st.write("The results for this session have not been uploaded yet")
-    st.stop()
+
 
 
 results["driver_name"] = results.apply(

@@ -1,28 +1,27 @@
 from sqlalchemy import create_engine
-import os
-from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import requests
+from pages.results import check_status
 
-load_dotenv()
+BASE_URL = "http://localhost:8000"
 
-engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
-
-statuses_info = pd.read_sql(f"SELECT id, name, color FROM track_statuses", engine)
+response = requests.get(BASE_URL+"/track-statuses")
+check_status(response)
+statuses_info = pd.read_json(response.text)
 statuses_info = dict(zip(statuses_info["id"].values, zip(statuses_info["name"].values, statuses_info["color"].values)))
 
-tyres_info = pd.read_sql(f"SELECT id, name, color FROM tyres", engine)
+response = requests.get(BASE_URL+"/tyres")
+check_status(response)
+tyres_info = pd.read_json(response.text)
 tyres_info = dict(zip(tyres_info["id"].values, zip(tyres_info["name"].values, tyres_info["color"].values)))
 
-query = """select s.id, e.year, e.round, st.name session_type, st.id session_type_id, t.country, t.circuit_name from sessions s
-join events e on s.event_id = e.id 
-join tracks t on e.track_id = t.id
-join session_types st on s.session_type = st.id
-where s.session_type in (5, 7)"""
-sessions = pd.read_sql(query, engine)
+response = requests.get(BASE_URL+"/sessions?only_races=true")
+check_status(response)
+sessions = pd.read_json(response.text)
 
 def calculate_deltas(laps_1, laps_2, over_zero=False):
     if min(len(laps_1), len(laps_2)) == 0:
@@ -137,8 +136,14 @@ with col3:
 
 session_id = sessions[mask]["id"].values[0]
 
-laps = pd.read_sql(f"SELECT * FROM laps_cleaned WHERE session_id = {session_id} ORDER BY driver_id, lap_number", engine)
-styles = pd.read_sql(f"SELECT * FROM style_info si join drivers d on si.driver_id = d.id WHERE session_id = {session_id} ORDER BY si.team DESC, d.id ", engine)
+response = requests.get(f"{BASE_URL}/laps/{session_id}")
+check_status(response)
+laps = pd.read_json(response.text)
+
+response = requests.get(f"{BASE_URL}/styles/{session_id}")
+check_status(response)
+styles = pd.read_json(response.text)
+
 if laps.empty:
     st.write("The results for this session have not been uploaded yet")
     st.stop()
