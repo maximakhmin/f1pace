@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import json
 import logging
+import asyncio
 
 logger = logging.getLogger("Emulator")
 
@@ -20,7 +21,7 @@ def parse_line(line):
         return None
 
 
-def run_live_emulation(file_path, real_time_path, speed_factor=1.0):
+async def run_live_emulation(file_path, real_time_path, speed_factor=1.0):
     """Имитирует поступление данных в реальном времени на основе меток времени.
 
     speed_factor: позволяет ускорить эмуляцию (например, 2.0 — в два раза
@@ -53,7 +54,7 @@ def run_live_emulation(file_path, real_time_path, speed_factor=1.0):
 
                     # Если разница положительная, усыпляем поток
                     if time_delta > 0:
-                        time.sleep(time_delta / speed_factor)
+                        await asyncio.sleep(time_delta / speed_factor)
 
                 # --- ТУТ НАЧИНАЕТСЯ ОБРАБОТКА ДАННЫХ (Ваш код) ---
                 # Данные отправляются в реал тайм файл
@@ -62,6 +63,3 @@ def run_live_emulation(file_path, real_time_path, speed_factor=1.0):
 
                 # Запоминаем время текущего пакета для следующего шага
                 prev_time = current_time
-
-
-run_live_emulation("web_app/testing_data/2024 silverstone race clean.txt", "real_time.txt", 10)
