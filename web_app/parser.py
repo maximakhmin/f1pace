@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine, text
 import os
 from dotenv import load_dotenv
-from fastf1 import get_session, RateLimitExceededError
+from fastf1 import get_session
+from fastf1.exceptions import RateLimitExceededError
 import fastf1
 from tqdm import tqdm
 import pandas as pd
