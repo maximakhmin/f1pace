@@ -131,5 +131,21 @@ class ResultStatuses(Base):
     name = Column(String)
 
 
+class ResultsRealTime(Base):
+    __tablename__ = 'real_time_results'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    driver_number = Column(Integer) 
+    position = Column(Integer)
+    gap_leader = Column(String)
+    gap_ahead = Column(String)
+
+class LapsRealTime(Base):
+    __tablename__ = 'real_time_laps'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    driver_number = Column(Integer) 
+    lap_time = Column(Float)
+    lap_number = Column(Integer)
+
+
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
 Base.metadata.create_all(engine)
