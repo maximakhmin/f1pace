@@ -9,7 +9,7 @@ import pandas as pd
 from parse_session import parse_results, parse_style, parse_laps, parse_weather
 import logging
 import time
-
+from analyze import analyze_laps
 
 
 load_dotenv()
@@ -114,6 +114,8 @@ def parse(year):
             parser_logger.error(f"Ошикба парсинга с session_id={sessions.loc[i, "id"]} : {type(e)}")
         finally:
             i += 1
+
+    analyze_laps()
 
 
     
