@@ -4,11 +4,13 @@ import json
 import pandas as pd
 from sqlalchemy import create_engine, text
 import os
-import datetime as dt
+from datetime import datetime as dt
+from datetime import timedelta as td
 from dotenv import load_dotenv
 from parse_session import convert_tyre, convert_time
 from emulate import parse_line
 import logging
+import asyncio
 
 load_dotenv()
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
@@ -22,8 +24,32 @@ def decode(data):
     return json.loads(json_string)
 
 class Session:
-    def __init__(self):
+    def __init__(self, speed):
+        self.speed = speed
         self.clean_database()
+        self.task = None
+
+    async def update_time_in_db(self, start_time):
+        """
+        Асинхронно обновляет время в базе данных 10 раз в секунду.
+        """
+        current_time = start_time
+        interval = 0.1 
+
+        logger.debug("Начинаю обновление времени в бд")
+        
+        try:
+            while True:
+
+                current_time += td(seconds=(interval * self.speed))
+                with engine.connect() as connection:
+                    query = text("UPDATE real_time SET time = :new_time")
+                    connection.execute(query, {"new_time" : current_time})
+                    connection.commit()
+                await asyncio.sleep(interval)
+                
+        except Exception as e:
+            logger.error(f"Ошибка записи времени {e}")
 
 
     def clean_database(self):
@@ -33,6 +59,8 @@ class Session:
             connection.execute(text("DELETE FROM real_time_results"))
             connection.execute(text("DELETE FROM real_time_laps"))
             connection.execute(text("DELETE FROM real_time_stints"))
+            connection.execute(text("DELETE FROM real_time"))
+            connection.execute(text("INSERT INTO real_time(time) VALUES (:time)"), {"time" : dt.now()})
             connection.commit()
 
     def get_current_lap(self, driver_number):
@@ -71,6 +99,11 @@ class Session:
 
             data_type, data, timestamp = parse_line(line)
 
+            current_timestamp = dt.fromisoformat(timestamp)
+            if self.task:
+                self.task.cancel()
+            self.task = asyncio.create_task(self.update_time_in_db(current_timestamp))
+
             if data_type.endswith(".z"):
                 try:
                     data = decode(data)
@@ -81,12 +114,13 @@ class Session:
             if "position" in data_type.lower():
 
                 position_df_data = []
-                timestamp = data["Position"][-1]["Timestamp"]
-                for key, value in data["Position"][-1]["Entries"].items():
-                    position_df_data.append([int(key), dt.datetime.fromisoformat(timestamp), value["Status"], value["X"], value["Y"], value["Z"]])
+                for positions_with_timestamp in data["Position"]:
+                    timestamp = positions_with_timestamp["Timestamp"]
+                    for key, value in positions_with_timestamp["Entries"].items():
+                        position_df_data.append([int(key), dt.fromisoformat(timestamp), value["Status"], value["X"], value["Y"], value["Z"]])
 
                 position_df = pd.DataFrame(position_df_data, columns=["driver_number", "time_utc", "status", "x", "y", "z"])
-                position_df.to_sql("real_time_position", engine, if_exists="replace", index=True, index_label="id")
+                position_df.to_sql("real_time_position", engine, if_exists="append", index=False)
 
                 logger.debug(f"Запись real-time позиции, {len(position_df)} записей")
 
@@ -95,7 +129,7 @@ class Session:
                 messages_df_data = []
 
                 for message in data["Messages"].values():
-                    messages_df_data.append([dt.datetime.fromisoformat(message["Utc"]), int(message["Lap"]), message["Message"]])
+                    messages_df_data.append([dt.fromisoformat(message["Utc"]), int(message["Lap"]), message["Message"]])
 
                 messages_df = pd.DataFrame(messages_df_data, columns=["time_utc", "lap", "message"])
                 messages_df.to_sql("real_time_messages", engine, if_exists="append", index=True, index_label="id")
@@ -118,7 +152,7 @@ class Session:
                             self.replace_attr(driver_number=key, new_value=value["Line"], attr_name="position")
                             logger.debug(f"Запись real-time driver position")
                         if "LastLapTime" and "NumberOfLaps" in value.keys():
-                            lap_time = dt.datetime.strptime(value["LastLapTime"]["Value"], "%M:%S.%f") - dt.datetime.strptime("00:00", "%M:%S")
+                            lap_time = dt.strptime(value["LastLapTime"]["Value"], "%M:%S.%f") - dt.strptime("00:00", "%M:%S")
                             laps.append([int(key), convert_time(lap_time), value["NumberOfLaps"]])
 
                     except Exception as e:

@@ -3,3 +3,4 @@
 __pycache__
 postgres_data/
 local_cache/
+web_app/__pycache__

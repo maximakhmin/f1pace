@@ -6,8 +6,8 @@ import asyncio
 
 logger = logging.getLogger("Process file")
 
-async def watch_file(file_path):
-    s = Session()
+async def watch_file(file_path, speed):
+    s = Session(speed)
 
     logger.info(f"Начинаю отслеживание файла: {file_path}")
 
