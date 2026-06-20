@@ -1,17 +1,13 @@
 import streamlit as st
 import pandas as pd
 import requests
+from main import BASE_URL, check_status
+from io import StringIO
 
-def check_status(response):
-    if response.status_code!=200:
-        st.write("The results for this session have not been uploaded yet")
-        st.stop()
-
-BASE_URL = "http://localhost:8000"
 
 response = requests.get(BASE_URL+"/sessions")
 check_status(response)
-sessions = pd.read_json(response.text)
+sessions = pd.read_json(StringIO(response.text))
 
 
 st.set_page_config(
@@ -52,7 +48,7 @@ selected_session_type = sessions[mask]["session_type_id"].values[0]
 response = requests.get(f"{BASE_URL}/results/{selected_session}")
 check_status(response)
 response.raise_for_status()
-results = pd.read_json(response.text)
+results = pd.read_json(StringIO(response.text))
 
 
 

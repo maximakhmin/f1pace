@@ -5,23 +5,22 @@ import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import requests
-from pages.results import check_status
-
-BASE_URL = "http://localhost:8000"
+from main import BASE_URL, check_status
+from io import StringIO
 
 response = requests.get(BASE_URL+"/track-statuses")
 check_status(response)
-statuses_info = pd.read_json(response.text)
+statuses_info = pd.read_json(StringIO(response.text))
 statuses_info = dict(zip(statuses_info["id"].values, zip(statuses_info["name"].values, statuses_info["color"].values)))
 
 response = requests.get(BASE_URL+"/tyres")
 check_status(response)
-tyres_info = pd.read_json(response.text)
+tyres_info = pd.read_json(StringIO(response.text))
 tyres_info = dict(zip(tyres_info["id"].values, zip(tyres_info["name"].values, tyres_info["color"].values)))
 
 response = requests.get(BASE_URL+"/sessions?only_races=true")
 check_status(response)
-sessions = pd.read_json(response.text)
+sessions = pd.read_json(StringIO(response.text))
 
 def calculate_deltas(laps_1, laps_2, over_zero=False):
     if min(len(laps_1), len(laps_2)) == 0:
@@ -138,11 +137,11 @@ session_id = sessions[mask]["id"].values[0]
 
 response = requests.get(f"{BASE_URL}/laps/{session_id}")
 check_status(response)
-laps = pd.read_json(response.text)
+laps = pd.read_json(StringIO(response.text))
 
 response = requests.get(f"{BASE_URL}/styles/{session_id}")
 check_status(response)
-styles = pd.read_json(response.text)
+styles = pd.read_json(StringIO(response.text))
 
 if laps.empty:
     st.write("The results for this session have not been uploaded yet")
