@@ -112,6 +112,7 @@ class TrackCornerSchema(BaseModel):
     y: float
     angle: float
     number: int 
+    distance: float
     rotation: int
 
     class Config:
@@ -356,7 +357,7 @@ CURRENT_SESSION_ID = 684
 async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = Depends(get_db)):
     logger.info(f"Получен запрос на live-координаты. Используется внутренняя сессия: {CURRENT_SESSION_ID}")
     
-    query = text("""
+    query_select = text("""
         WITH target_time AS (
             SELECT time AS t_time FROM real_time LIMIT 1
         ),
@@ -393,15 +394,30 @@ async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = De
         FROM ranked_positions
         WHERE rn = 1;
     """)
+
+    query_delete = text("""
+        WITH target_time AS (
+            SELECT time AS t_time FROM real_time LIMIT 1
+        )
+        DELETE FROM real_time_position rtp
+        USING target_time tt
+        WHERE rtp.time_utc < (tt.t_time - 30 * INTERVAL '1 second')
+    """)
     
     try:
-        result = await db.execute(query, {"session_id": CURRENT_SESSION_ID, "delay_seconds" : delay_seconds})
+        # Выполняем SELECT
+        result = await db.execute(query_select, {"session_id": CURRENT_SESSION_ID, "delay_seconds": delay_seconds})
         rows = result.mappings().all()
         
-        logger.info(f"Успешно возвращено {len(rows)} точек позиционирования для сессии {CURRENT_SESSION_ID}")
+        # Выполняем DELETE (динамически передаем delay_seconds для гибкости)
+        delete_result = await db.execute(query_delete, {"delay_seconds": delay_seconds})
+        await db.commit()
+        
+        logger.info(f"Успешно возвращено {len(rows)} точек позиционирования для сессии {CURRENT_SESSION_ID}, Удалено устаревших строк: {delete_result.rowcount}")
         return rows
         
     except Exception as e:
+        await db.rollback()
         logger.exception(f"Ошибка при получении live-координат для сессии {CURRENT_SESSION_ID}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
@@ -420,7 +436,7 @@ async def get_track_corners(db: AsyncSession = Depends(get_db)):
     
     # Ваш SQL-запрос с подзапросом, адаптированный под bind-параметр :session_id
     query = text("""
-        SELECT x, y, angle, number, rotation 
+        SELECT x, y, angle, number, distance, rotation 
         FROM track_corners 
         WHERE event_id = (
             SELECT e.id FROM events e
