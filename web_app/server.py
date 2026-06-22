@@ -118,6 +118,13 @@ class TrackCornerSchema(BaseModel):
     class Config:
         from_attributes = True
 
+class TrackMapSchema(BaseModel):
+    x: float
+    y: float
+
+    class Config:
+        from_attributes = True
+
 
 class RealTimeMessageSchema(BaseModel):
     time_utc: datetime
@@ -470,6 +477,50 @@ async def get_track_corners(db: AsyncSession = Depends(get_db)):
             detail="Internal server error"
         )
     
+
+@app.get(
+    "/telemetry/track-map", 
+    response_model=List[TrackMapSchema],
+    summary="Получить координаты для карты трассы для текущей сессии (live)",
+    status_code=status.HTTP_200_OK
+)
+async def get_track_map(db: AsyncSession = Depends(get_db)):
+    logger.info(f"Получен запрос на карту трассы для внутренней сессии: {CURRENT_SESSION_ID}")
+    
+    # Ваш SQL-запрос с подзапросом, адаптированный под bind-параметр :session_id
+    query = text("""
+        SELECT x, y FROM track_map 
+        WHERE event_id = (
+            SELECT e.id FROM events e
+            JOIN sessions s ON e.id = s.event_id
+            WHERE s.id = :session_id
+            LIMIT 1
+        )
+        order by idx
+    """)
+    
+    try:
+        result = await db.execute(query, {"session_id": CURRENT_SESSION_ID})
+        rows = result.mappings().all()
+        
+        if not rows:
+            logger.warning(f"Карта трассы для сессии {CURRENT_SESSION_ID} не найдены")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Track map for session {CURRENT_SESSION_ID} not found"
+            )
+            
+        logger.info(f"Успешно возвращено {len(rows)} точек для карты трассы session_id={CURRENT_SESSION_ID}")
+        return rows
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Ошибка при получении карты трассы для сессии {CURRENT_SESSION_ID}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Internal server error"
+        )
 
 
 @app.get(

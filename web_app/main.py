@@ -54,6 +54,10 @@ if __name__ == "__main__":
         ]
     )
 
+    # fastf1.Cache.set_enabled()
+    # for year in range(2024, 2027):
+    #     parse(year, analyze=False)
+
     p1 = multiprocessing.Process(target=start_emulation)
     p2 = multiprocessing.Process(target=start_server)
 

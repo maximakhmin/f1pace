@@ -31,7 +31,7 @@ async def watch_file(file_path, speed):
 
             # Если строка есть — обрабатываем её
             if line:
-                s.load(line)
+                asyncio.create_task(s.load(line))
                 last_active_time = (
                     time.time()
                 )  # Сбрасываем таймер при получении данных
@@ -45,4 +45,4 @@ async def watch_file(file_path, speed):
                     break  # Выходим из цикла и закрываем файл
 
                 # Если таймаут не вышел, ждем секунду перед следующей проверкой
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.05)
