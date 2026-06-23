@@ -55,15 +55,15 @@ def parse_and_save(session_year, session_round, session_type, session_id, event_
                  len(curr_s_style_info)!=0 and 
                  len(curr_s_laps)!=0 and 
                  len(curr_s_track_corners)!=0 and 
-                 len(curr_s_track_map)!=0 and 
                  len(curr_s_weather)!=0)
 
-    if condition:
+    if condition and len(curr_s_track_map)!=0:
         parser_logger.info(f"Уже есть запись везде с session_id={session_id}")
         return
 
-    fastf1_session = get_session(session_year, session_round, session_type)
-    fastf1_session.load()
+    if not condition:
+        fastf1_session = get_session(session_year, session_round, session_type)
+        fastf1_session.load()
 
     try:
         if len(curr_s_results)==0:
