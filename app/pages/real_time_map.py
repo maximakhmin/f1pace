@@ -212,7 +212,7 @@ def render_live_position_pydeck():
 def render_live_messages():
     response = requests.get(BASE_URL+"/telemetry/messages")
     check_status(response)
-    messages = pd.read_json(response.text)
+    messages = pd.read_json(StringIO(response.text))
     if messages.empty:
         return
     messages["time_utc"] = pd.to_datetime(messages["time_utc"])
