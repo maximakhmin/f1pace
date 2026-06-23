@@ -34,7 +34,16 @@ class TrackCorners(Base):
     y = Column(Float)
     angle = Column(Float)
     number = Column(Float)
+    distance = Column(Float)
     rotation = Column(Float)
+
+class TrackMap(Base):
+    __tablename__ = 'track_map'
+    id = Column(Integer, primary_key=True)  
+    event_id = Column(Integer, ForeignKey('events.id'))
+    x = Column(Float)  
+    y = Column(Float)
+    idx = Column(Float)
 
 class SessionTypes(Base):
     __tablename__ = 'session_types'
@@ -139,12 +148,51 @@ class ResultsRealTime(Base):
     gap_leader = Column(String)
     gap_ahead = Column(String)
 
+class PositionRealTime(Base):
+    __tablename__ = 'real_time_position'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    driver_number = Column(Integer) 
+    time_utc = Column(DateTime)
+    status = Column(String)
+    x = Column(Integer)
+    y = Column(Integer)
+    z = Column(Integer)
+
+
 class LapsRealTime(Base):
     __tablename__ = 'real_time_laps'
     id = Column(Integer, primary_key=True, autoincrement=True) 
     driver_number = Column(Integer) 
     lap_time = Column(Float)
     lap_number = Column(Integer)
+    end_time_utc = Column(DateTime)
+
+
+class StintsRealTime(Base):
+    __tablename__ = 'real_time_stints'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    driver_number = Column(Integer) 
+    stint_number = Column(Float)
+    tyre_type = Column(Integer)
+    total_laps = Column(Integer)
+    start_lap = Column(Integer)
+
+class RealTime(Base):
+    __tablename__ = 'real_time'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    time = Column(DateTime)
+
+class WeatherRealTime(Base):
+    __tablename__ = 'real_time_weather'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    time_utc = Column(DateTime)
+    air_temp = Column(Float)
+    humidity = Column(Float)
+    pressure = Column(Float)
+    rainfall = Column(Float)
+    track_temp = Column(Float)
+    wind_direction = Column(Float)
+    wind_speed = Column(Float)
 
 
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
