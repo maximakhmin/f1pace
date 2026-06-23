@@ -74,6 +74,7 @@ class Session:
             connection.execute(text("DELETE FROM real_time_laps"))
             connection.execute(text("DELETE FROM real_time_stints"))
             connection.execute(text("DELETE FROM real_time"))
+            connection.execute(text("DELETE FROM real_time_weather"))
             connection.execute(text("INSERT INTO real_time(time) VALUES (:time)"), {"time" : dt.now()})
             connection.commit()
 
@@ -94,6 +95,7 @@ class Session:
         return 1
 
     async def replace_attr(self, driver_number, new_value, attr_name):
+        driver_number = int(driver_number)
         async with async_engine.connect() as connection:
             select_query = text("SELECT 1 FROM real_time_results WHERE driver_number = :driver_number")
             update_query = text(f"UPDATE real_time_results SET {attr_name} = :new_value WHERE driver_number = :driver_number")
@@ -185,17 +187,17 @@ class Session:
                             logger.debug(f"Запись real-time driver position")
                         if "LastLapTime" in value.keys() and "NumberOfLaps" in value.keys():
                             lap_time = dt.strptime(value["LastLapTime"]["Value"], "%M:%S.%f") - dt.strptime("00:00", "%M:%S")
-                            laps.append([int(key), convert_time(lap_time), value["NumberOfLaps"]])
+                            laps.append([int(key), convert_time(lap_time), value["NumberOfLaps"], current_timestamp])
 
                     except Exception as e:
                         logger.warning(f"Ошибка парсинга timingdata {e}")
                 
                 if len(laps) > 0:
-                    laps_df = pd.DataFrame(laps, columns=["driver_number", "lap_time", "lap_number"])         
+                    laps_df = pd.DataFrame(laps, columns=["driver_number", "lap_time", "lap_number", "end_time_utc"])         
                     async with async_engine.begin() as conn:
                         query = text("""
-                            INSERT INTO real_time_laps (driver_number, lap_time, lap_number) 
-                            VALUES (:driver_number, :lap_time, :lap_number)
+                            INSERT INTO real_time_laps (driver_number, lap_time, lap_number, end_time_utc) 
+                            VALUES (:driver_number, :lap_time, :lap_number, :end_time_utc)
                         """)
                         await conn.execute(query, laps_df.to_dict(orient="records"))
                     logger.info(f"Запись real-time кругов, {len(laps_df)} записей")
@@ -223,17 +225,43 @@ class Session:
                         logger.warning(f"Ошибка парсинга стинта : {value} : {e}")
 
                 if len(stints) > 0:
-                    stints_df = pd.DataFrame(stints, columns=["Driver_number", "stint_number", "tyre_type", "total_laps", "start_lap"])
+                    stints_df = pd.DataFrame(stints, columns=["driver_number", "stint_number", "tyre_type", "total_laps", "start_lap"])
                     
                     async with async_engine.begin() as conn:
                         query = text("""
                             INSERT INTO real_time_stints (driver_number, stint_number, tyre_type, total_laps, start_lap) 
-                            VALUES (:Driver_number, :stint_number, :tyre_type, :total_laps, :start_lap)
+                            VALUES (:driver_number, :stint_number, :tyre_type, :total_laps, :start_lap)
                         """)
                         # Названия плейсхолдеров (:Driver_number) должны строго совпадать с колонками DataFrame
                         await conn.execute(query, stints_df.to_dict(orient="records"))
                         
-                    logger.info(f"Запись real-time стинтов, {len(stints_df)} записей")
+                    
+
+             # --- Блок WEATHERDATA ---
+            if "weatherdata" in data_type.lower():
+                try:
+                    async with async_engine.begin() as conn:
+                        query = text("""
+                            INSERT INTO real_time_weather (time_utc, air_temp, humidity, pressure, rainfall, track_temp, wind_direction, wind_speed) 
+                            VALUES (:time_utc, :air_temp, :humidity, :pressure, :rainfall, :track_temp, :wind_direction, :wind_speed) 
+                        """)
+
+                        params = {
+                            "time_utc" : current_timestamp,
+                            "air_temp" : float(data.get("AirTemp")),
+                            "humidity" : float(data.get("Humidity")),
+                            "pressure" : float(data.get("Pressure")),
+                            "rainfall" : float(data.get("Rainfall")),
+                            "track_temp" : float(data.get("TrackTemp")),
+                            "wind_direction" : float(data.get("WindDirection")),
+                            "wind_speed" : float(data.get("WindSpeed")),
+                        }
+
+                        await conn.execute(query, params)
+                        
+                        logger.info(f"Запись real-time погоды")
+                except Exception as e:
+                    logger.error(f"Ошибка записи real-time погоды : {data} : {e}")
 
         except Exception as e:
             logger.error(f"Ошибка парсинга строки {line} : {e}")
