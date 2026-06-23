@@ -242,8 +242,8 @@ class Session:
                 try:
                     async with async_engine.begin() as conn:
                         query = text("""
-                            INSERT INTO real_time_weather (time_utc, air_temp, humidity, pressure, rainfall, track_temp, wind_direction, wind_speed) 
-                            VALUES (:time_utc, :air_temp, :humidity, :pressure, :rainfall, :track_temp, :wind_direction, :wind_speed) 
+                            INSERT INTO real_time_weather (time_utc, air_temp, humidity, pressure, is_rain, track_temp, wind_direction, wind_speed) 
+                            VALUES (:time_utc, :air_temp, :humidity, :pressure, :is_rain, :track_temp, :wind_direction, :wind_speed) 
                         """)
 
                         params = {
@@ -251,7 +251,7 @@ class Session:
                             "air_temp" : float(data.get("AirTemp")),
                             "humidity" : float(data.get("Humidity")),
                             "pressure" : float(data.get("Pressure")),
-                            "rainfall" : float(data.get("Rainfall")),
+                            "is_rain" : bool(int(data.get("Rainfall"))),
                             "track_temp" : float(data.get("TrackTemp")),
                             "wind_direction" : float(data.get("WindDirection")),
                             "wind_speed" : float(data.get("WindSpeed")),

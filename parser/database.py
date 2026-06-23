@@ -189,7 +189,7 @@ class WeatherRealTime(Base):
     air_temp = Column(Float)
     humidity = Column(Float)
     pressure = Column(Float)
-    rainfall = Column(Float)
+    is_rain = Column(Boolean)
     track_temp = Column(Float)
     wind_direction = Column(Float)
     wind_speed = Column(Float)
