@@ -5,7 +5,7 @@ from main import BASE_URL, check_status
 from io import StringIO
 
 
-response = requests.get(BASE_URL+"/sessions")
+response = requests.get(BASE_URL+"/historical/sessions")
 check_status(response)
 sessions = pd.read_json(StringIO(response.text))
 
@@ -45,7 +45,7 @@ selected_session = sessions[mask]["id"].values[0]
 selected_session_type = sessions[mask]["session_type_id"].values[0]
 
 
-response = requests.get(f"{BASE_URL}/results/{selected_session}")
+response = requests.get(f"{BASE_URL}/historical/results/{selected_session}")
 check_status(response)
 response.raise_for_status()
 results = pd.read_json(StringIO(response.text))

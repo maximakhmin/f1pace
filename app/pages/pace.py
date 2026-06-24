@@ -8,17 +8,17 @@ import requests
 from main import BASE_URL, check_status
 from io import StringIO
 
-response = requests.get(BASE_URL+"/track-statuses")
+response = requests.get(BASE_URL+"/info/track-statuses")
 check_status(response)
 statuses_info = pd.read_json(StringIO(response.text))
 statuses_info = dict(zip(statuses_info["id"].values, zip(statuses_info["name"].values, statuses_info["color"].values)))
 
-response = requests.get(BASE_URL+"/tyres")
+response = requests.get(BASE_URL+"/info/tyres")
 check_status(response)
 tyres_info = pd.read_json(StringIO(response.text))
 tyres_info = dict(zip(tyres_info["id"].values, zip(tyres_info["name"].values, tyres_info["color"].values)))
 
-response = requests.get(BASE_URL+"/sessions?only_races=true")
+response = requests.get(BASE_URL+"/historical/sessions?only_races=true")
 check_status(response)
 sessions = pd.read_json(StringIO(response.text))
 
@@ -135,11 +135,11 @@ with col3:
 
 session_id = sessions[mask]["id"].values[0]
 
-response = requests.get(f"{BASE_URL}/laps/{session_id}")
+response = requests.get(f"{BASE_URL}/historical/laps/{session_id}")
 check_status(response)
 laps = pd.read_json(StringIO(response.text))
 
-response = requests.get(f"{BASE_URL}/styles/{session_id}")
+response = requests.get(f"{BASE_URL}/historical/styles/{session_id}")
 check_status(response)
 styles = pd.read_json(StringIO(response.text))
 

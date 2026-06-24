@@ -29,12 +29,12 @@ with col2:
     placeholder2 = st.empty()
 
 
-response = requests.get("http://localhost:8000/telemetry/track-corners")
+response = requests.get(f"{BASE_URL}/live/track-corners")
 corners = pd.read_json(StringIO(response.text))
 angle_rad = np.radians(corners["rotation"].mean())
 
 
-response = requests.get("http://localhost:8000/telemetry/track-map")
+response = requests.get(f"{BASE_URL}/live/track-map")
 map = pd.read_json(StringIO(response.text))
 
 # Матрица поворота
@@ -103,10 +103,10 @@ def render_live_position_pydeck():
     current_time_str = "--:--:--"
 
     try:
-        response = requests.get(BASE_URL + "/telemetry/current-live-timestamp", timeout=0.2)
+        response = requests.get(BASE_URL + "/live/current-live-timestamp", timeout=0.2)
         current_time_str = dt.fromisoformat(response.json()["time"]).strftime("%H:%M:%S")
 
-        response_pos = requests.get(BASE_URL + "/telemetry/positions", timeout=0.2)
+        response_pos = requests.get(BASE_URL + "/live/positions", timeout=0.2)
         new_data = pd.read_json(StringIO(response_pos.text))
     except Exception:
         if st.session_state.f1_last_time:
@@ -210,7 +210,7 @@ def render_live_position_pydeck():
 
 @st.fragment(run_every=5)
 def render_live_messages():
-    response = requests.get(BASE_URL+"/telemetry/messages")
+    response = requests.get(BASE_URL+"/live/messages")
     check_status(response)
     messages = pd.read_json(StringIO(response.text))
     if messages.empty:
