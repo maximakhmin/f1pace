@@ -30,6 +30,7 @@ class SessionSchema(BaseModel):
 
 class StyleSchema(BaseModel):
     driver_id: int
+    driver_number: int
     abbr: str
     color: str
     linestyle: str

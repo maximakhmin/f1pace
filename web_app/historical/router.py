@@ -103,7 +103,7 @@ async def get_session_styles(session_id: int, db: AsyncSession = Depends(get_db)
     
     # SQL-запрос с использованием безопасного bind-параметра :session_id
     query = text("""
-        SELECT si.driver_id, d.abbr, si.color, si.linestyle, si.marker 
+        SELECT si.driver_id, si.number driver_number, d.abbr, si.color, si.linestyle, si.marker 
         FROM style_info si 
         JOIN drivers d ON si.driver_id = d.id 
         WHERE si.session_id = :session_id 
