@@ -1,13 +1,12 @@
 import logging
 import os
 import time
-from emulation.session import Session
 import asyncio
 
 logger = logging.getLogger("Process file")
 
-async def watch_file(file_path, speed):
-    s = Session(speed)
+async def watch_file(file_path, session):
+
 
     logger.info(f"Начинаю отслеживание файла: {file_path}")
 
@@ -31,7 +30,7 @@ async def watch_file(file_path, speed):
 
             # Если строка есть — обрабатываем её
             if line:
-                asyncio.create_task(s.load(line))
+                asyncio.create_task(session.load(line))
                 last_active_time = (
                     time.time()
                 )  # Сбрасываем таймер при получении данных

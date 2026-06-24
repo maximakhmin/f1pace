@@ -61,9 +61,34 @@ class Session:
                     await connection.commit()
 
                 await asyncio.sleep(interval)
-                
+
+        except asyncio.CancelledError:
+            logger.info("Задача обновления времени получила сигнал отмены. Чистим за собой...")
+            # Важно: внутри этого блока контекстные менеджеры `async with` из цикла while 
+            # гарантированно отработали и закрыли соединение, так как мы вылетели из цикла.
+            raise # Обязательно пробрасываем исключение дальше для asyncio
         except Exception as e:
             logger.error(f"Ошибка записи времени {e}")
+
+    async def close(self):
+        """
+        Метод для плавного и гарантированного закрытия всех ресурсов сессии.
+        Вызывайте его в блоке `finally` вашей функции `thread_worker`.
+        """
+        logger.info("Запуск полной очистки ресурсов сессии эмуляции...")
+        
+        # 1. Снимаем фоновую задачу времени
+        if self.task and not self.task.done():
+            self.task.cancel()
+            try:
+                await self.task
+            except asyncio.CancelledError:
+                pass
+        
+        # 2. Сбрасываем пулы соединений SQLAlchemy (освобождает сокеты в Postgres)
+        engine.dispose()             # Для синхронного движка
+        await async_engine.dispose() # Для асинхронного движка
+        logger.info("Все пулы соединений с БД успешно уничтожены.")
 
 
     def clean_database(self):
@@ -239,29 +264,26 @@ class Session:
 
              # --- Блок WEATHERDATA ---
             if "weatherdata" in data_type.lower():
-                try:
-                    async with async_engine.begin() as conn:
-                        query = text("""
-                            INSERT INTO real_time_weather (time_utc, air_temp, humidity, pressure, is_rain, track_temp, wind_direction, wind_speed) 
-                            VALUES (:time_utc, :air_temp, :humidity, :pressure, :is_rain, :track_temp, :wind_direction, :wind_speed) 
-                        """)
+                async with async_engine.begin() as conn:
+                    query = text("""
+                        INSERT INTO real_time_weather (time_utc, air_temp, humidity, pressure, is_rain, track_temp, wind_direction, wind_speed) 
+                        VALUES (:time_utc, :air_temp, :humidity, :pressure, :is_rain, :track_temp, :wind_direction, :wind_speed) 
+                    """)
 
-                        params = {
-                            "time_utc" : current_timestamp,
-                            "air_temp" : float(data.get("AirTemp")),
-                            "humidity" : float(data.get("Humidity")),
-                            "pressure" : float(data.get("Pressure")),
-                            "is_rain" : bool(int(data.get("Rainfall"))),
-                            "track_temp" : float(data.get("TrackTemp")),
-                            "wind_direction" : float(data.get("WindDirection")),
-                            "wind_speed" : float(data.get("WindSpeed")),
-                        }
+                    params = {
+                        "time_utc" : current_timestamp,
+                        "air_temp" : float(data.get("AirTemp")),
+                        "humidity" : float(data.get("Humidity")),
+                        "pressure" : float(data.get("Pressure")),
+                        "is_rain" : bool(int(data.get("Rainfall"))),
+                        "track_temp" : float(data.get("TrackTemp")),
+                        "wind_direction" : float(data.get("WindDirection")),
+                        "wind_speed" : float(data.get("WindSpeed")),
+                    }
 
-                        await conn.execute(query, params)
-                        
-                        logger.info(f"Запись real-time погоды")
-                except Exception as e:
-                    logger.error(f"Ошибка записи real-time погоды : {data} : {e}")
+                    await conn.execute(query, params)
+                    
+                    logger.info(f"Запись real-time погоды")
 
         except Exception as e:
             logger.error(f"Ошибка парсинга строки {line} : {e}")

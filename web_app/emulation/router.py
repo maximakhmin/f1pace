@@ -13,6 +13,7 @@ import asyncio
 from emulation.emulate import run_live_emulation
 from emulation.process_real_time_data import watch_file
 from typing import Optional
+from emulation.session import Session
 
 
 logger = logging.getLogger("Server Emulation")
@@ -26,8 +27,49 @@ set_current_session_id(None)
 IS_EMULATION_RUNNING: bool = False
 EMULATION_THREAD: Optional[threading.Thread] = None
 THREAD_LOOP: Optional[asyncio.AbstractEventLoop] = None
+MAIN_EMULATION_FUTURE: Optional[asyncio.Future] = None
 
-# 1. Статус
+
+def thread_worker(session_filename: str, speed: float):
+    global IS_EMULATION_RUNNING, CURRENT_SESSION_ID, THREAD_LOOP, MAIN_EMULATION_TASK
+    
+    THREAD_LOOP = asyncio.new_event_loop()
+    asyncio.set_event_loop(THREAD_LOOP)
+    
+    logger.info("[Поток] Запущен Event Loop для эмуляции.")
+    
+    try:
+        session = Session(speed)
+
+        session_filename = 'web_app/emulation/testing_data/' + session_filename
+
+        real_time_filename = "web_app/real_time.txt"
+        if os.path.exists(real_time_filename):
+            os.remove(real_time_filename)
+        # Оборачиваем gather в явную Task, чтобы её можно было отменить извне
+        MAIN_EMULATION_FUTURE = asyncio.gather(
+            watch_file(real_time_filename, session),
+            run_live_emulation(session_filename, real_time_filename, speed)
+        )
+        
+        # 2. Передаем фьючерс напрямую в run_until_complete. 
+        # Это заблокирует поток до завершения или отмены обеих функций.
+        THREAD_LOOP.run_until_complete(MAIN_EMULATION_FUTURE)
+        
+    except asyncio.CancelledError:
+        logger.info("[Поток] Главная задача эмуляции была отменена.")
+    except Exception as e:
+        logger.error(f"[Поток] Ошибка в Event Loop: {str(e)}")
+    finally:
+        THREAD_LOOP.run_until_complete(session.close())
+        THREAD_LOOP.close()
+        THREAD_LOOP = None
+        MAIN_EMULATION_TASK = None
+        IS_EMULATION_RUNNING = False
+        set_current_session_id(None)
+        logger.info("[Поток] Поток завершил работу, loop закрыт, блокировки сняты.")
+    
+
 @router.get(
     "/status", 
     summary="Получить текущий статус эмуляции",
@@ -41,47 +83,9 @@ async def get_emulation_status():
         "current_session_id": get_current_session_id()
     }
 
-def thread_worker(session_filename: str, speed: float):
-    global IS_EMULATION_RUNNING, THREAD_LOOP
-    
-    # 1. Создаем и устанавливаем НОВЫЙ асинхронный цикл для этого потока
-    THREAD_LOOP = asyncio.new_event_loop()
-    asyncio.set_event_loop(THREAD_LOOP)
-    
-    logger.info(f"[Поток] Запущен новый Event Loop для эмуляции {session_filename}")
-    
-    try:
-        session_filename = 'web_app/emulation/testing_data/' + session_filename
-
-        real_time_filename = "web_app/real_time.txt"
-        if os.path.exists(real_time_filename):
-            os.remove(real_time_filename)
-        # 2. Группируем ваши две асинхронные функции в единую задачу
-        # asyncio.gather запустит их параллельно внутри этого потока
-        main_task = asyncio.gather(
-            watch_file(real_time_filename, speed),
-            run_live_emulation(session_filename, real_time_filename, speed)
-        )
-        
-        # 3. Запускаем цикл и передаем ему управление (поток заблокируется тут до завершения)
-        THREAD_LOOP.run_until_complete(main_task)
-        
-    except asyncio.CancelledError:
-        logger.info("[Поток] Асинхронные задачи эмуляции были отменены.")
-    except Exception as e:
-        logger.error(f"[Поток] Ошибка внутри Event Loop эмуляции: {str(e)}")
-    finally:
-        # Очищаем ресурсы при выходе
-        THREAD_LOOP.close()
-        THREAD_LOOP = None
-        IS_EMULATION_RUNNING = False
-        set_current_session_id(None)
-        logger.info("[Поток] Поток эмуляции завершил работу, loop закрыт.")
-    
-
 
 @router.post(
-    "/emulation/start",
+    "/start",
     summary="Начать эмуляцию сессии по id и скорости"
 )
 async def start_emulation(session_id: int, speed: float = 1.0, db: AsyncSession = Depends(get_db)):
@@ -112,29 +116,33 @@ async def start_emulation(session_id: int, speed: float = 1.0, db: AsyncSession 
     return {"message": f"Эмуляция сессии {session_id} изолирована в отдельном потоке."}
 
 
-# Ручка остановки
 @router.post(
-    "/emulation/stop",
+    "/stop",
     summary="Остановить эмуляцию сессии"
 )
 async def stop_emulation():
-    global EMULATION_THREAD, THREAD_LOOP, IS_EMULATION_RUNNING
+    global EMULATION_THREAD, THREAD_LOOP, MAIN_EMULATION_FUTURE, IS_EMULATION_RUNNING
     
     if not IS_EMULATION_RUNNING or THREAD_LOOP is None:
-        return {"message": "Нет активной эмуляции для остановки."}
+        return {"message": "Нет активных эмуляций для остановки."}
         
-    logger.info("Остановка асинхронных задач в фоновом потоке...")
+    logger.info("Инициирована безопасная остановка задач эмуляции...")
     
-    # КЛЮЧЕВОЙ МОМЕНТ:
-    # Так как мы находимся в основном потоке FastAPI, мы не можем просто сказать loop.stop().
-    # Мы используем call_soon_threadsafe, чтобы безопасно из основного потока дать команду 
-    # фоновому циклу остановить все свои запущенные таски.
-    THREAD_LOOP.call_soon_threadsafe(THREAD_LOOP.stop)
+    # Отменяем фьючерс gather. Это автоматически по цепочке 
+    # пошлет CancelledError внутрь watch_file и run_live_emulation
+    if MAIN_EMULATION_FUTURE and not MAIN_EMULATION_FUTURE.done():
+        THREAD_LOOP.call_soon_threadsafe(MAIN_EMULATION_FUTURE.cancel)
+        
+    # Даем корутинам закрыть транзакции в бд и тушим сам loop
+    def stop_loop():
+        if THREAD_LOOP and THREAD_LOOP.is_running():
+            THREAD_LOOP.stop()
+
+    THREAD_LOOP.call_soon_threadsafe(stop_loop)
     
-    # Зануляем объекты, поток сам допишет блок finally и очистит переменные состояния
     EMULATION_THREAD = None
     
-    return {"message": "Команда на остановку отправлена в фоновый поток."}
+    return {"message": "Сигнал отмены отправлен. База данных освобождается."}
 
 
 
