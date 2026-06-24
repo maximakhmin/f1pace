@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from live.schemas import TrackMapSchema, RealTimeLapsSchema, TrackCornerSchema, LiveTimestampSchema, RealTimeMessageSchema, RealTimePositionSchema
 from live.predict import predict_future_laps
-from db import get_db, CURRENT_SESSION_ID
+from db import get_db, get_current_session_id
 from typing import List
 from fastapi import Depends, HTTPException, status
 import logging
@@ -24,7 +24,8 @@ router = APIRouter(
     status_code=status.HTTP_200_OK
 )
 async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Получен запрос на live-координаты. Используется внутренняя сессия: {CURRENT_SESSION_ID}")
+    current_session_id = get_current_session_id()
+    logger.info(f"Получен запрос на live-координаты. Используется внутренняя сессия: {current_session_id}")
     
     query_select = text("""
         WITH target_time AS (
@@ -75,19 +76,19 @@ async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = De
     
     try:
         # Выполняем SELECT
-        result = await db.execute(query_select, {"session_id": CURRENT_SESSION_ID, "delay_seconds": delay_seconds})
+        result = await db.execute(query_select, {"session_id": current_session_id, "delay_seconds": delay_seconds})
         rows = result.mappings().all()
         
         # Выполняем DELETE (динамически передаем delay_seconds для гибкости)
         delete_result = await db.execute(query_delete, {"delay_seconds": delay_seconds})
         await db.commit()
         
-        logger.info(f"Успешно возвращено {len(rows)} точек позиционирования для сессии {CURRENT_SESSION_ID}, Удалено устаревших строк: {delete_result.rowcount}")
+        logger.info(f"Успешно возвращено {len(rows)} точек позиционирования для сессии {current_session_id}, Удалено устаревших строк: {delete_result.rowcount}")
         return rows
         
     except Exception as e:
         await db.rollback()
-        logger.exception(f"Ошибка при получении live-координат для сессии {CURRENT_SESSION_ID}: {str(e)}")
+        logger.exception(f"Ошибка при получении live-координат для сессии {current_session_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
@@ -101,7 +102,8 @@ async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = De
     status_code=status.HTTP_200_OK
 )
 async def get_track_corners(db: AsyncSession = Depends(get_db)):
-    logger.info(f"Получен запрос на конфигурацию поворотов для внутренней сессии: {CURRENT_SESSION_ID}")
+    current_session_id = get_current_session_id()
+    logger.info(f"Получен запрос на конфигурацию поворотов для внутренней сессии: {current_session_id}")
     
     # Ваш SQL-запрос с подзапросом, адаптированный под bind-параметр :session_id
     query = text("""
@@ -117,23 +119,23 @@ async def get_track_corners(db: AsyncSession = Depends(get_db)):
     """)
     
     try:
-        result = await db.execute(query, {"session_id": CURRENT_SESSION_ID})
+        result = await db.execute(query, {"session_id": current_session_id})
         rows = result.mappings().all()
         
         if not rows:
-            logger.warning(f"Повороты трассы для сессии {CURRENT_SESSION_ID} не найдены")
+            logger.warning(f"Повороты трассы для сессии {current_session_id} не найдены")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, 
-                detail=f"Track corners for session {CURRENT_SESSION_ID} not found"
+                detail=f"Track corners for session {current_session_id} not found"
             )
             
-        logger.info(f"Успешно возвращено {len(rows)} поворотов для сессии {CURRENT_SESSION_ID}")
+        logger.info(f"Успешно возвращено {len(rows)} поворотов для сессии {current_session_id}")
         return rows
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Ошибка при получении поворотов трассы для сессии {CURRENT_SESSION_ID}: {str(e)}")
+        logger.exception(f"Ошибка при получении поворотов трассы для сессии {current_session_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
@@ -147,7 +149,8 @@ async def get_track_corners(db: AsyncSession = Depends(get_db)):
     status_code=status.HTTP_200_OK
 )
 async def get_track_map(db: AsyncSession = Depends(get_db)):
-    logger.info(f"Получен запрос на карту трассы для внутренней сессии: {CURRENT_SESSION_ID}")
+    current_session_id = get_current_session_id()
+    logger.info(f"Получен запрос на карту трассы для внутренней сессии: {current_session_id}")
     
     # Ваш SQL-запрос с подзапросом, адаптированный под bind-параметр :session_id
     query = text("""
@@ -162,23 +165,23 @@ async def get_track_map(db: AsyncSession = Depends(get_db)):
     """)
     
     try:
-        result = await db.execute(query, {"session_id": CURRENT_SESSION_ID})
+        result = await db.execute(query, {"session_id": current_session_id})
         rows = result.mappings().all()
         
         if not rows:
-            logger.warning(f"Карта трассы для сессии {CURRENT_SESSION_ID} не найдены")
+            logger.warning(f"Карта трассы для сессии {current_session_id} не найдены")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, 
-                detail=f"Track map for session {CURRENT_SESSION_ID} not found"
+                detail=f"Track map for session {current_session_id} not found"
             )
             
-        logger.info(f"Успешно возвращено {len(rows)} точек для карты трассы session_id={CURRENT_SESSION_ID}")
+        logger.info(f"Успешно возвращено {len(rows)} точек для карты трассы session_id={current_session_id}")
         return rows
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Ошибка при получении карты трассы для сессии {CURRENT_SESSION_ID}: {str(e)}")
+        logger.exception(f"Ошибка при получении карты трассы для сессии {current_session_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
@@ -255,10 +258,11 @@ async def get_current_live_timestamp(db: AsyncSession = Depends(get_db)):
     status_code=status.HTTP_200_OK
 )
 async def get_real_time_laps(number_of_predictions: int = 5):
+    current_session_id = get_current_session_id()
     logger.info(f"Получен запрос на live времена кругов. Количество предсказаний: {number_of_predictions}")
      
     try:
-        result_df = predict_future_laps(CURRENT_SESSION_ID, number_of_predictions)
+        result_df = predict_future_laps(current_session_id, number_of_predictions)
         print(result_df)
         rows = result_df.to_dict(orient='records')
         logger.info(f"Успешно возвращено {len(rows)} live времена кругов")

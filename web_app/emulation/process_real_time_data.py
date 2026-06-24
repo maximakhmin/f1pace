@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from emulate.session import Session
+from emulation.session import Session
 import asyncio
 
 logger = logging.getLogger("Process file")
