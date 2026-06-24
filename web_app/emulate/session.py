@@ -7,8 +7,8 @@ import os
 from datetime import datetime as dt, timezone
 from datetime import timedelta as td
 from dotenv import load_dotenv
-from parse_session import convert_tyre, convert_time
-from emulate import parse_line
+from parser.parse_session import convert_tyre, convert_time
+from emulate.emulate import parse_line
 import logging
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
