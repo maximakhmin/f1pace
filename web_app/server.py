@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import logging
 from datetime import datetime
+from predict import predict_future_laps
 
 load_dotenv()
 DATABASE_URL = f'postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace'
@@ -128,7 +129,7 @@ class TrackMapSchema(BaseModel):
 
 class RealTimeMessageSchema(BaseModel):
     time_utc: datetime
-    lap: int # Номер круга может отсутствовать (например, до старта гонки)
+    lap: int
     message: str
 
     class Config:
@@ -136,6 +137,22 @@ class RealTimeMessageSchema(BaseModel):
 
 class LiveTimestampSchema(BaseModel):
     time: datetime
+
+    class Config:
+        from_attributes = True
+
+class RealTimeLapsSchema(BaseModel):
+    driver_number: int
+    lap_time: float
+    lap_number: int
+    stint_number: int
+    tyre_type: int
+    tyre_age: int
+    end_time_utc: datetime
+    is_predicted_future: bool
+
+    class Config:
+        from_attributes = True
 
 @app.get(
     "/results/{session_id}", 
@@ -552,7 +569,9 @@ async def get_real_time_messages(db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
         )
-    
+
+
+
 
 @app.get(
     "/telemetry/current-live-timestamp", 
@@ -577,6 +596,31 @@ async def get_current_live_timestamp(db: AsyncSession = Depends(get_db)):
         
     except Exception as e:
         logger.exception(f"Ошибка при получении текущего live-время сервера: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Internal server error"
+        )
+    
+
+
+@app.get(
+    "/telemetry/laps", 
+    response_model=List[RealTimeLapsSchema],
+    summary="Получить времена кругов с предсказаниями (live)",
+    status_code=status.HTTP_200_OK
+)
+async def get_real_time_laps(number_of_predictions: int = 5):
+    logger.info(f"Получен запрос на live времена кругов. Количество предсказаний: {number_of_predictions}")
+     
+    try:
+        result_df = predict_future_laps(CURRENT_SESSION_ID, number_of_predictions)
+        print(result_df)
+        rows = result_df.to_dict(orient='records')
+        logger.info(f"Успешно возвращено {len(rows)} live времена кругов")
+        return rows
+        
+    except Exception as e:
+        logger.exception(f"Ошибка при получении live времена кругов : {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
