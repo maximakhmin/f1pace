@@ -1,14 +1,9 @@
 import requests
-from main import BASE_URL, check_status
+from main import BASE_URL, check_status, MESSAGE_NO_LIVE_TIME_DATA
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
 import streamlit as st
 from datetime import datetime as dt
-from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
-import time
-from streamlit_bokeh import streamlit_bokeh
 from io import StringIO
 import pydeck as pdk # Импортируем PyDeck
 
@@ -30,11 +25,13 @@ with col2:
 
 
 response = requests.get(f"{BASE_URL}/live/track-corners")
+check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
 corners = pd.read_json(StringIO(response.text))
 angle_rad = np.radians(corners["rotation"].mean())
 
 
 response = requests.get(f"{BASE_URL}/live/track-map")
+check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
 map = pd.read_json(StringIO(response.text))
 
 # Матрица поворота
@@ -104,9 +101,11 @@ def render_live_position_pydeck():
 
     try:
         response = requests.get(BASE_URL + "/live/current-live-timestamp", timeout=0.2)
+        check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
         current_time_str = dt.fromisoformat(response.json()["time"]).strftime("%H:%M:%S")
 
         response_pos = requests.get(BASE_URL + "/live/positions", timeout=0.2)
+        check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
         new_data = pd.read_json(StringIO(response_pos.text))
     except Exception:
         if st.session_state.f1_last_time:
@@ -211,7 +210,7 @@ def render_live_position_pydeck():
 @st.fragment(run_every=5)
 def render_live_messages():
     response = requests.get(BASE_URL+"/live/messages")
-    check_status(response)
+    check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
     messages = pd.read_json(StringIO(response.text))
     if messages.empty:
         return

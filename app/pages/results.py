@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
-from main import BASE_URL, check_status
+from main import BASE_URL, check_status, MESSAGE_NO_RESULT
 from io import StringIO
 
 
@@ -46,7 +46,7 @@ selected_session_type = sessions[mask]["session_type_id"].values[0]
 
 
 response = requests.get(f"{BASE_URL}/historical/results/{selected_session}")
-check_status(response)
+check_status(response, MESSAGE_NO_RESULT)
 response.raise_for_status()
 results = pd.read_json(StringIO(response.text))
 

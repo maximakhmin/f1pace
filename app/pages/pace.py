@@ -1,11 +1,10 @@
-from sqlalchemy import create_engine
 import pandas as pd
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import requests
-from main import BASE_URL, check_status
+from main import BASE_URL, check_status, MESSAGE_NO_RESULT
 from io import StringIO
 
 response = requests.get(BASE_URL+"/info/track-statuses")
@@ -136,11 +135,11 @@ with col3:
 session_id = sessions[mask]["id"].values[0]
 
 response = requests.get(f"{BASE_URL}/historical/laps/{session_id}")
-check_status(response)
+check_status(response, MESSAGE_NO_RESULT)
 laps = pd.read_json(StringIO(response.text))
 
 response = requests.get(f"{BASE_URL}/historical/styles/{session_id}")
-check_status(response)
+check_status(response, MESSAGE_NO_RESULT)
 styles = pd.read_json(StringIO(response.text))
 
 if laps.empty:
