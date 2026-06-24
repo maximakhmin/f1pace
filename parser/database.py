@@ -182,6 +182,11 @@ class RealTime(Base):
     id = Column(Integer, primary_key=True, autoincrement=True) 
     time = Column(DateTime)
 
+class CurrentSessionId(Base):
+    __tablename__ = 'current_session_id'
+    id = Column(Integer, primary_key=True, autoincrement=True) 
+    session_id = Column(Integer)
+
 class WeatherRealTime(Base):
     __tablename__ = 'real_time_weather'
     id = Column(Integer, primary_key=True, autoincrement=True) 
@@ -193,6 +198,14 @@ class WeatherRealTime(Base):
     track_temp = Column(Float)
     wind_direction = Column(Float)
     wind_speed = Column(Float)
+
+class EmulatedSessions(Base):
+    __tablename__ = 'emulated_sessions'
+    id = Column(Integer, primary_key=True, autoincrement=True)    
+    session_id = Column(Integer)
+    file_name = Column(String)
+
+
 
 
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')

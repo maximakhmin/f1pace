@@ -5,7 +5,7 @@ import numpy as np
 import streamlit as st
 from datetime import datetime as dt
 from io import StringIO
-import pydeck as pdk # Импортируем PyDeck
+import pydeck as pdk
 
 
 # Вспомогательная функция для конвертации HEX в RGB (PyDeck использует RGB 0-255)

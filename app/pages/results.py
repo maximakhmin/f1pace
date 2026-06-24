@@ -15,7 +15,7 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded",
 )
-st.title("Результаты сессий")
+st.title("🏎️ Результаты сессий")
 
 available_years = sorted(sessions['year'].unique(), reverse=True)
 selected_year = st.selectbox("Выберите год", available_years)
