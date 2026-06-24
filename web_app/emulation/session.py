@@ -44,16 +44,16 @@ class Session:
 
     async def update_time_in_db(self, start_time):
         """
-        Асинхронно обновляет время в базе данных 10 раз в секунду.
+        Асинхронно обновляет время в базе данных 4 раз в секунду.
         """
         current_time = start_time
-        interval = 0.1 
+        interval = 0.25 
 
         logger.debug("Начинаю обновление времени в бд")
         
         try:
             while True:
-                current_time += td(seconds=(interval * self.speed))
+                current_time += td(seconds=((interval - 0.05) * self.speed))
 
                 async with async_engine.connect() as connection:
                     query = text("UPDATE real_time SET time = :new_time")
