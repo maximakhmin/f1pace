@@ -111,7 +111,7 @@ def render_live_position_pydeck():
         if st.session_state.f1_last_time:
             current_time_str = st.session_state.f1_last_time
 
-    if new_data is not None:
+    if new_data is not None and not new_data.empty:
         # Поворот координат пилотов
         rotated_pilots = np.dot(new_data[['x', 'y']], rot_matrix.T)
         new_data['rot_x'] = rotated_pilots[:, 0]
@@ -129,10 +129,12 @@ def render_live_position_pydeck():
 
         st.session_state.f1_last_positions_df = new_data
         st.session_state.f1_last_time = current_time_str
+
     
     if st.session_state.f1_last_positions_df is None:
-        st.warning("Ожидание данных телеметрии...")
-        return
+        with placeholder1.container():
+            st.warning("Ожидание данных телеметрии...")
+            return
 
     positions_df = st.session_state.f1_last_positions_df
 
@@ -210,7 +212,7 @@ def render_live_position_pydeck():
 @st.fragment(run_every=5)
 def render_live_messages():
     response = requests.get(BASE_URL+"/live/messages")
-    check_status(response, MESSAGE_NO_LIVE_TIME_DATA)
+    check_status(response, "")
     messages = pd.read_json(StringIO(response.text))
     if messages.empty:
         return
