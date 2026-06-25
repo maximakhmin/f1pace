@@ -19,7 +19,6 @@ async def watch_file(file_path, session):
     logger.info(f"Файл {file_path} появился")
     with open(file_path, "r", encoding="utf-8") as f:
         # Перемещаем указатель в самый конец файла
-        f.seek(0, os.SEEK_END)
 
         # Инициализируем время последней активности текущим моментом
         last_active_time = time.time()

@@ -3,10 +3,13 @@ import xgboost as xgb
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+import logging
 
 
 load_dotenv()
 engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@localhost:5432/f1pace')
+
+logging.getLogger("Prediction model")
 
 model = xgb.XGBRegressor()
 model.load_model("web_app/live/xgboost_with_rain.ubj")
@@ -119,79 +122,86 @@ def predict_future_laps(session_id, n_laps=5):
 
     # 1. Сортируем для правильной хронологии
     df = df.sort_values(by=['driver_number', 'lap_number']).reset_index(drop=True)
-    
-    # Список для сбора будущих предсказанных кругов
-    future_laps_list = []
-    
-    # Группируем по уникальным стинтам
-    grouped = df.groupby(['driver_number'])
-    
-    for (driver_number, ), group in grouped:
-        if group.empty:
-            continue
-            
-        # Берем самый последний известный круг в этом стинте как отправную точку
-        last_known_lap = group.iloc[-1].copy()
-        
-        # Переменные для отслеживания истории (авторегрессия)
-        # Нам нужны лаги на 1 и 2 шага назад для самого первого предсказания
-        # shift_1 — это время только что законченного (последнего известного) круга
-        # shift_2 — это время предпоследнего круга
-        pred_shift_1 = last_known_lap['lap_time']
-        
-        if len(group) > 1:
-            pred_shift_2 = group.iloc[-2]['lap_time']
-        else:
-            # Если в стинте был всего 1 круг, берем его же или shift_1_lap_time из фичей
-            pred_shift_2 = last_known_lap['shift_1_lap_time']
-            
-        current_lap_num = last_known_lap['lap_number']
-        current_tyre_age = last_known_lap['tyre_age']
-        
-        # Базовый шаблон для будущих кругов (константные фичи: погода, тип шин, grip и т.д.)
-        base_lap_dict = last_known_lap.to_dict()
-        
-        # Итеративно прогнозируем на n кругов вперед
-        for step in range(1, n_laps + 1):
-            # Создаем запись для нового круга
-            future_lap = base_lap_dict.copy()
-            
-            # Обновляем изменяющиеся со временем параметры
-            current_lap_num += 1
-            current_tyre_age += 1
-            
-            future_lap['lap_number'] = current_lap_num
-            future_lap['tyre_age'] = current_tyre_age
-            
-            # Подставляем лаги (из прошлых предсказаний / реальных крайних кругов)
-            future_lap['shift_1_lap_time'] = pred_shift_1
-            future_lap['shift_2_lap_time'] = pred_shift_2
-            
-            # Превращаем в DataFrame (1 строка) для модели
-            X_step = pd.DataFrame([future_lap])[feature_columns]
-            
-            # Делаем предикт для текущего шага
-            # [0] так как predict возвращает массив/список
-            predicted_time = model.predict(X_step)[0] 
-            
-            # Записываем предсказанное время
-            future_lap['lap_time'] = predicted_time
-            future_lap['is_predicted_future'] = True  # Флаг, что это сгенерированный круг
-            
-            future_laps_list.append(future_lap)
-            
-            # Сдвигаем лаги для следующей итерации (следующего круга)
-            pred_shift_2 = pred_shift_1
-            pred_shift_1 = predicted_time
 
-    # Превращаем список предсказаний в DataFrame
-    df_future = pd.DataFrame(future_laps_list)
-    
     # Помечаем исторические данные флагом
     df['is_predicted_future'] = False
+
+    try:
     
-    # Объединяем историю и прогноз в один красивый датафрейм
-    final_df = pd.concat([df, df_future], ignore_index=True)
-    final_df = final_df.sort_values(by=['driver_number', 'stint_number', 'lap_number']).reset_index(drop=True)
+        # Список для сбора будущих предсказанных кругов
+        future_laps_list = []
+        
+        # Группируем по уникальным стинтам
+        grouped = df.groupby(['driver_number'])
+        
+        for (driver_number, ), group in grouped:
+            if group.empty:
+                continue
+                
+            # Берем самый последний известный круг в этом стинте как отправную точку
+            last_known_lap = group.iloc[-1].copy()
+            
+            # Переменные для отслеживания истории (авторегрессия)
+            # Нам нужны лаги на 1 и 2 шага назад для самого первого предсказания
+            # shift_1 — это время только что законченного (последнего известного) круга
+            # shift_2 — это время предпоследнего круга
+            pred_shift_1 = last_known_lap['lap_time']
+            
+            if len(group) > 1:
+                pred_shift_2 = group.iloc[-2]['lap_time']
+            else:
+                # Если в стинте был всего 1 круг, берем его же или shift_1_lap_time из фичей
+                pred_shift_2 = last_known_lap['shift_1_lap_time']
+                
+            current_lap_num = last_known_lap['lap_number']
+            current_tyre_age = last_known_lap['tyre_age']
+            
+            # Базовый шаблон для будущих кругов (константные фичи: погода, тип шин, grip и т.д.)
+            base_lap_dict = last_known_lap.to_dict()
+            
+            # Итеративно прогнозируем на n кругов вперед
+            for step in range(1, n_laps + 1):
+                # Создаем запись для нового круга
+                future_lap = base_lap_dict.copy()
+                
+                # Обновляем изменяющиеся со временем параметры
+                current_lap_num += 1
+                current_tyre_age += 1
+                
+                future_lap['lap_number'] = current_lap_num
+                future_lap['tyre_age'] = current_tyre_age
+                
+                # Подставляем лаги (из прошлых предсказаний / реальных крайних кругов)
+                future_lap['shift_1_lap_time'] = pred_shift_1
+                future_lap['shift_2_lap_time'] = pred_shift_2
+                
+                # Превращаем в DataFrame (1 строка) для модели
+                X_step = pd.DataFrame([future_lap])[feature_columns]
+                
+                # Делаем предикт для текущего шага
+                # [0] так как predict возвращает массив/список
+                predicted_time = model.predict(X_step)[0] 
+                
+                # Записываем предсказанное время
+                future_lap['lap_time'] = predicted_time
+                future_lap['is_predicted_future'] = True  # Флаг, что это сгенерированный круг
+                
+                future_laps_list.append(future_lap)
+                
+                # Сдвигаем лаги для следующей итерации (следующего круга)
+                pred_shift_2 = pred_shift_1
+                pred_shift_1 = predicted_time
+
+        # Превращаем список предсказаний в DataFrame
+        df_future = pd.DataFrame(future_laps_list)
+        
+        # Объединяем историю и прогноз в один красивый датафрейм
+        final_df = pd.concat([df, df_future], ignore_index=True)
+        final_df = final_df.sort_values(by=['driver_number', 'lap_number']).reset_index(drop=True)
+        
+        logging.info("Успешное предсказание")
+        return final_df[return_columns]
     
-    return final_df[return_columns]
+    except Exception as e:
+        logging.error("Ошибка предсказания. Возвращаю круги без предсказания")
+        return df
