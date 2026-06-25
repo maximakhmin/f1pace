@@ -16,7 +16,7 @@ def hex_to_rgb(hex_str):
     return [int(hex_str[i:i+2], 16) for i in (0, 2, 4)]
 
 
-st.set_page_config(page_title="F1 Real Time", layout="wide")
+st.set_page_config(layout="wide")
 col1, gap, col2 = st.columns([14, 1, 10])
 with col1:
     placeholder1 = st.empty()
@@ -220,17 +220,12 @@ def render_live_messages():
 
     messages["time"] = messages["time_utc"].apply(lambda x : dt.strftime(x, "%H:%M:%S"))
 
-    # Вызываем плагин вместо встроенной функции.
-    # Передаем use_container_width=True и фиксированный key, чтобы Streamlit
-    # не пытался переинициализировать ассеты компонента на каждом тике.
-
 
     with placeholder2.container():
         st.title("")
         st.title("Сообщения дирекции")
-        with st.container(height=400):
+        with st.container(height=500):
             st.table(messages[["time", "lap", "message"]])
-        # st.dataframe(messages[["time", "lap", "message"]], height=400, use_container_width=True)
 
 
 # Запуск слоя телеметрии

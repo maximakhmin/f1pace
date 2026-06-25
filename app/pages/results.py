@@ -11,7 +11,6 @@ sessions = pd.read_json(StringIO(response.text))
 
 
 st.set_page_config(
-    page_title="Session results",
     layout="centered",
     initial_sidebar_state="expanded",
 )

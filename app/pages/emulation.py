@@ -4,8 +4,7 @@ import pandas as pd
 import time
 from main import BASE_URL, check_status
 
-st.set_page_config(
-    page_title="F1 Emulation Control Panel", 
+st.set_page_config( 
     layout="centered",
     initial_sidebar_state="expanded",
 )
@@ -90,7 +89,7 @@ else:
     
     # Кнопка СТАРТ
     with col_btn_start:
-        if st.button("▶ ЗАПУСТИТЬ", type="primary", disabled=is_running, use_container_width=True):
+        if st.button("▶ ЗАПУСТИТЬ", type="primary", disabled=is_running, width='stretch',):
             payload = {"session_id": selected_session_id, "speed": speed}
             try:
                 res = requests.post(f"{BASE_URL}/emulation/start", params=payload)
@@ -105,7 +104,7 @@ else:
                 
     # Кнопка СТОП
     with col_btn_stop:
-        if st.button("⏹ ОСТАНОВИТЬ", type="secondary", disabled=not is_running, use_container_width=True):
+        if st.button("⏹ ОСТАНОВИТЬ", type="secondary", disabled=not is_running, width='stretch',):
             try:
                 res = requests.post(f"{BASE_URL}/emulation/stop")
                 if res.status_code == 200:
@@ -121,7 +120,7 @@ else:
     with st.expander("Посмотреть все доступные для эмуляции сессии"):
         st.dataframe(
             df_sessions[['id', 'year', 'round', 'session_type', 'country', 'circuit_name']], 
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 

@@ -102,7 +102,7 @@ def driver_select_format_func(x):
     abbr = styles[styles['driver_id'] == x]['abbr'].values[0]
     return f":color[▍]{{foreground='{color}'}}**{abbr}**"
 
-st.set_page_config(page_title="F1 Lap Analyzer", layout="wide")
+st.set_page_config(layout="wide")
 st.title("🏎️ Сравнение времен круга")
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 

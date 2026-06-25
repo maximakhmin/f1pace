@@ -7,6 +7,7 @@ import requests
 from main import BASE_URL, check_status, MESSAGE_NO_RESULT, MESSAGE_NO_LIVE_TIME_DATA
 from io import StringIO
 from datetime import datetime as dt
+from streamlit_autorefresh import st_autorefresh
 
 response = requests.get(BASE_URL+"/info/track-statuses")
 check_status(response)
@@ -90,7 +91,7 @@ def driver_select_format_func(x):
     abbr = styles[styles['driver_number'] == x]['abbr'].values[0]
     return f":color[▍]{{foreground='{color}'}}**{abbr}**"
 
-st.set_page_config(page_title="F1 Real Time Lap Analyzer", layout="wide")
+st.set_page_config(layout="wide")
 st.title("🏎️ Сравнение времен круга в реальном времени")
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 
@@ -348,5 +349,5 @@ fig.update_layout(
     ),
 )
 
-
+count = st_autorefresh(interval=60000, key="datarefresh")
 st.plotly_chart(fig, config={'displayModeBar': False})
