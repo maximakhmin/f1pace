@@ -3,13 +3,11 @@ import os
 from dotenv import load_dotenv
 from fastf1 import get_session
 from fastf1.exceptions import RateLimitExceededError
-import fastf1
-from tqdm import tqdm
 import pandas as pd
 from parser.parse_session import parse_results, parse_style, parse_laps, parse_weather
 import logging
 import time
-from analyze import analyze_laps
+from parser.analyze import analyze_laps
 import requests
 
 

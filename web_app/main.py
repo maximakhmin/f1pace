@@ -3,6 +3,8 @@ import fastf1
 import uvicorn
 from uvicorn.config import LOGGING_CONFIG
 import multiprocessing
+from parser.parser import parse
+import time
 
 
 
@@ -16,19 +18,22 @@ def start_server():
         log_config=None
     )
 
+
+def start_parsing(year=2026):
+    parse(year)
+    time.sleep(3600*24) 
+
 if __name__ == "__main__":
 
     fastf1.logger.set_log_level('ERROR')
     logging.getLogger('fastf1').propagate = False
 
     logging.basicConfig(
-        # filename='web_app/log.log',
-        # filemode='a',
         level=logging.INFO,
         format='%(asctime)s - [%(name)s] - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         handlers=[
-            logging.FileHandler("app.log"), # Все логи сохранятся в файл server.log
+            logging.FileHandler("app.log"), 
         ]
     )
 
@@ -36,19 +41,18 @@ if __name__ == "__main__":
     # for year in range(2021, 2027):
     #     parse(year, analyze=True)
 
-    # p1 = multiprocessing.Process(target=start_emulation)
-    p2 = multiprocessing.Process(target=start_server)
+    p1 = multiprocessing.Process(target=start_server)
+    p2 = multiprocessing.Process(target=start_parsing)
 
     # Запускаем оба
-    # p1.start()
+    p1.start()
     p2.start()
 
-    # Ждем их завершения (Ctrl+C остановит основной скрипт)
     try:
-        # p1.join()
+        p1.join()
         p2.join()
     except KeyboardInterrupt:
-        # p1.terminate()
+        p1.terminate()
         p2.terminate()
 
 
