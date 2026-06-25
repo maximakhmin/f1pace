@@ -18,7 +18,7 @@ router = APIRouter(
 @router.get(
     "/results/{session_id}", 
     response_model=List[RaceResultSchema],
-    summary="Получить результаты сессии (historical)",
+    summary="Получить результаты сессии",
     status_code=status.HTTP_200_OK,)
 async def get_session_results(session_id: int, db: AsyncSession = Depends(get_db)):
     logger.info(f"Получен запрос на результаты сессии. session_id={session_id}")
@@ -61,7 +61,7 @@ async def get_session_results(session_id: int, db: AsyncSession = Depends(get_db
 @router.get(
     "/sessions",
     response_model=List[SessionSchema],
-    summary="Получить все сессии (historical)",
+    summary="Получить все сессии",
     status_code=status.HTTP_200_OK,
 )
 async def get_all_sessions(only_races: bool = False, db: AsyncSession = Depends(get_db)):
@@ -95,7 +95,7 @@ async def get_all_sessions(only_races: bool = False, db: AsyncSession = Depends(
 @router.get(
     "/styles/{session_id}", 
     response_model=List[StyleSchema],
-    summary="Получить стили оформления пилотов для сессии (historical)",
+    summary="Получить стили оформления пилотов для сессии",
     status_code=status.HTTP_200_OK
 )
 async def get_session_styles(session_id: int, db: AsyncSession = Depends(get_db)):
@@ -137,7 +137,7 @@ async def get_session_styles(session_id: int, db: AsyncSession = Depends(get_db)
 @router.get(
     "/laps/{session_id}", 
     response_model=List[LapSchema],
-    summary="Получить круги сессии (historical)",
+    summary="Получить круги сессии",
     status_code=status.HTTP_200_OK
 )
 async def get_session_laps(

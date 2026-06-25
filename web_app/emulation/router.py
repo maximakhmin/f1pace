@@ -41,9 +41,9 @@ def thread_worker(session_filename: str, speed: float):
     try:
         session = Session(speed)
 
-        session_filename = 'web_app/emulation/testing_data/' + session_filename
+        session_filename = 'emulation/testing_data/' + session_filename
 
-        real_time_filename = "web_app/real_time.txt"
+        real_time_filename = "real_time.txt"
         if os.path.exists(real_time_filename):
             os.remove(real_time_filename)
         # Оборачиваем gather в явную Task, чтобы её можно было отменить извне

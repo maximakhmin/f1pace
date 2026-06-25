@@ -12,7 +12,7 @@ engine = create_engine(f'postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASS
 logging.getLogger("Prediction model")
 
 model = xgb.XGBRegressor()
-model.load_model("web_app/live/xgboost_with_rain.ubj")
+model.load_model("live/xgboost_with_rain.ubj")
 
 query_laps = """
     WITH 

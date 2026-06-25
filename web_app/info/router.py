@@ -18,7 +18,7 @@ router = APIRouter(
 @router.get(
     "/tyres", 
     response_model=List[TyreSchema],
-    summary="Получить справочную информацию по шинам (info)",
+    summary="Получить справочную информацию по шинам",
     status_code=status.HTTP_200_OK,
 )
 async def get_tyres(db: AsyncSession = Depends(get_db)):
@@ -40,7 +40,7 @@ async def get_tyres(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/track-statuses", 
     response_model=List[TrackStatusSchema],
-    summary="Получить справочную информацию по статусам (info)",
+    summary="Получить справочную информацию по статусам",
     status_code=status.HTTP_200_OK,
 )
 async def get_track_statuses(db: AsyncSession = Depends(get_db)):

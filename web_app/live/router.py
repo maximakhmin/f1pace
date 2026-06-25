@@ -20,7 +20,7 @@ router = APIRouter(
 @router.get(
     "/positions", 
     response_model=List[RealTimePositionSchema],
-    summary="Получить текущие координаты болидов на трассе (live)",
+    summary="Получить текущие координаты болидов на трассе",
     status_code=status.HTTP_200_OK
 )
 async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = Depends(get_db)):
@@ -98,7 +98,7 @@ async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = De
 @router.get(
     "/track-corners", 
     response_model=List[TrackCornerSchema],
-    summary="Получить координаты и параметры поворотов трассы для текущей сессии (live)",
+    summary="Получить координаты и параметры поворотов трассы для текущей сессии",
     status_code=status.HTTP_200_OK
 )
 async def get_track_corners(db: AsyncSession = Depends(get_db)):
@@ -145,7 +145,7 @@ async def get_track_corners(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/track-map", 
     response_model=List[TrackMapSchema],
-    summary="Получить координаты для карты трассы для текущей сессии (live)",
+    summary="Получить координаты для карты трассы для текущей сессии",
     status_code=status.HTTP_200_OK
 )
 async def get_track_map(db: AsyncSession = Depends(get_db)):
@@ -191,7 +191,7 @@ async def get_track_map(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/messages", 
     response_model=List[RealTimeMessageSchema],
-    summary="Получить хронологический лог сообщений гонки (live)",
+    summary="Получить хронологический лог сообщений гонки",
     status_code=status.HTTP_200_OK
 )
 async def get_real_time_messages(db: AsyncSession = Depends(get_db)):
@@ -224,7 +224,7 @@ async def get_real_time_messages(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/current-live-timestamp", 
     response_model=LiveTimestampSchema,
-    summary="Получить текущее внутреннее время трансляции сервера (live)",
+    summary="Получить текущее внутреннее время трансляции сервера",
     status_code=status.HTTP_200_OK
 )
 async def get_current_live_timestamp(db: AsyncSession = Depends(get_db)):
@@ -254,7 +254,7 @@ async def get_current_live_timestamp(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/laps", 
     response_model=List[RealTimeLapsSchema],
-    summary="Получить времена кругов с предсказаниями (live)",
+    summary="Получить времена кругов с предсказаниями",
     status_code=status.HTTP_200_OK
 )
 async def get_real_time_laps(number_of_predictions: int = 5):

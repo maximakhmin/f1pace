@@ -1,7 +1,5 @@
 import logging
 import fastf1
-import os
-import asyncio
 import uvicorn
 from uvicorn.config import LOGGING_CONFIG
 import multiprocessing
@@ -30,7 +28,7 @@ if __name__ == "__main__":
         format='%(asctime)s - [%(name)s] - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S',
         handlers=[
-            logging.FileHandler("web_app/app.log"), # Все логи сохранятся в файл server.log
+            logging.FileHandler("app.log"), # Все логи сохранятся в файл server.log
         ]
     )
 
