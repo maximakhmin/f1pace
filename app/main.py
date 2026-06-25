@@ -1,6 +1,10 @@
 import streamlit as st
+from dotenv import load_dotenv
+import os
 
-BASE_URL = "http://localhost:8000"
+load_dotenv()
+
+BASE_URL = f"http://{os.getenv("SERVER_APP_HOST")}:{os.getenv("SERVER_APP_PORT")}"
 MESSAGE_NO_RESULT = "The results for this session have not been uploaded yet"
 MESSAGE_NO_LIVE_TIME_DATA = "There is no live-time data now, try again later"
 
@@ -11,14 +15,6 @@ def check_status(response, message="Unknown error, try again later"):
 
 
 
-# Настройка конфигурации страницы (вкладка браузера)
-st.set_page_config(
-    page_title="F1 Telemetry Analytics",
-    page_icon="🏎️",
-    layout="wide"
-)
-
-
 # 1. Сначала объявляем все страницы через st.Page
 # Относительный путь к файлу, название для меню, иконка
 page_main = st.Page("main.py", title="Главная", icon="🏎️", default=True)
@@ -27,8 +23,8 @@ page_results = st.Page("pages/results.py", title="Результаты сесс�
 page_pace = st.Page("pages/pace.py", title="Аналитика кругов", icon="⏱️")
 
 page_emulation = st.Page("pages/emulation.py", title="Панель управления эмуляцией", icon="🎛️")
-page_pace_live = st.Page("pages/pace_real_time.py", title="Аналитика кругов (Live)", icon="📊")
 page_map = st.Page("pages/real_time_map.py", title="Карта трассы", icon="🗺️")
+page_pace_live = st.Page("pages/pace_real_time.py", title="Аналитика кругов (Live)", icon="📊")
 
 # 2. Структурируем страницы по секциям (словарь, где ключ — название секции)
 navigation_structure = {
@@ -39,8 +35,8 @@ navigation_structure = {
     ],
     "Live данные": [
         page_emulation,
-        page_pace_live,
-        page_map
+        page_map,
+        page_pace_live
     ]
 }
 
@@ -51,7 +47,6 @@ selected_page = st.navigation(navigation_structure)
 st.set_page_config(
     page_title=f"F1 Analytics — {selected_page.title}",
     page_icon=selected_page.icon,
-    # layout="wide"
 )
 
 

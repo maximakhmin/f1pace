@@ -1,8 +1,10 @@
+version: '3.8'
+
 services:
-  
+  # 1. Сервис Базы Данных
   postgres:
     image: postgres:16-alpine
-    container_name: postgres_db
+    container_name: postgres_db_f1
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -10,7 +12,45 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - postgres_data_2:/var/lib/postgresql/data
+      # Монтируем файл инициализации. Postgres выполнит его при первом старте.
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d f1pace"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Сервис app (Streamlit)
+  streamlit_app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: streamlit_app
+    environment:
+    - SERVER_APP_HOST=server_app
+    - SERVER_APP_PORT=${SERVER_APP_PORT}
+    ports:
+      - "8501:8501"
+
+  # 3. Сервис server_app (Обычный скрипт)
+  server_app:
+    build:
+      context: ./server_app
+      dockerfile: Dockerfile
+    container_name: server_app
+    ports:
+      - "${SERVER_APP_PORT}:${SERVER_APP_PORT}"
+    environment:
+      - SERVER_APP_PORT=${SERVER_APP_PORT}
+      - DB_HOST=postgres
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=f1pace
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  postgres_data_2:

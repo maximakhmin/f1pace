@@ -3,6 +3,6 @@
 __pycache__
 postgres_data/
 local_cache/
-web_app/__pycache__
-web_app/app.log
-web_app/real_time.txt
+server_app/__pycache__
+server_app/app.log
+server_app/real_time.txt
