@@ -251,7 +251,7 @@ for i in range(len(selected_drivers)):
         ),
     )
 
-    data_tyres = data[(data["lap_number"] == 1) | (data["is_pit_out_lap"] == True)]
+    data_tyres = data[(data["lap_number"] == 1) | (data["is_pit_in_lap"] == True)]
     marker_colors = [tyres_info[tyre_type][1] for tyre_type in data_tyres['tyre_type']]
     fig.add_trace(
         go.Scatter(

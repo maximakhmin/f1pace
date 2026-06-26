@@ -105,8 +105,8 @@ def websocket_background_listener():
     while True:  # Цикл авто-переподключения при сбое сети
         try:
             # Открываем постоянные соединения
-            ws_pos = create_connection(f"{WS_BASE_URL}/positions/ws?refresh_interval=0.25&delay_seconds=10")
-            ws_time = create_connection(f"{WS_BASE_URL}/current-live-timestamp/ws?refresh_interval=0.25")
+            ws_pos = create_connection(f"{WS_BASE_URL}/positions/ws?refresh_interval=0.2&delay_seconds=10")
+            ws_time = create_connection(f"{WS_BASE_URL}/current-live-timestamp/ws?refresh_interval=0.2")
             
             while True:
                 # 1. Читаем время
@@ -139,7 +139,7 @@ if not st.session_state.ws_threads_started:
 # --- 2. ОБНОВЛЕННЫЙ ПОЛНЫЙ ФРАГМЕНТ ДЛЯ PYDECK ---
 
 # Оптимизированный интервал локальной перерисовки PyDeck
-@st.fragment(run_every=0.25) 
+@st.fragment(run_every=0.2) 
 def render_live_position_pydeck():
     # Забираем актуальное время, полученное из вебсокета фоновым потоком
     current_time_str = st.session_state.f1_last_time

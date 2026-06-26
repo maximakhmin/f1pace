@@ -151,7 +151,7 @@ async def get_session_laps(
     # Добавлена сортировка по driver_id и lap_number, чтобы данные шли последовательно
     query = text("""
         SELECT driver_id, position, lap_number, track_status, 
-               lap_time, session_time_end, is_pit_out_lap, tyre_type 
+               lap_time, session_time_end, is_pit_in_lap, tyre_type 
         FROM laps_cleaned 
         WHERE session_id = :session_id
         ORDER BY driver_id, lap_number

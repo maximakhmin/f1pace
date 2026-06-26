@@ -56,7 +56,9 @@ st.set_page_config(
 
 
 if selected_page == page_main:
-
+    st.set_page_config(
+        layout='wide',
+    )
     # Заголовок главной страницы
     st.title("🏎️ F1 Telemetry & Telemetry Analytics Center")
     st.subheader("Добро пожаловать в систему анализа гоночных данных")

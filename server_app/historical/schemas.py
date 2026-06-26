@@ -47,7 +47,7 @@ class LapSchema(BaseModel):
     track_status: int
     lap_time: float
     session_time_end: float
-    is_pit_out_lap: bool
+    is_pit_in_lap: bool
     tyre_type: int
 
     class Config:
