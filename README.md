@@ -91,9 +91,9 @@ docker compose up --build -d
 
 **Посмотреть логи конкретного сервиса в реальном времени:**
 ```bash
-docker compose logs -f web_app   # для Streamlit
-docker compose logs -f app       # для FastAPI
-docker compose logs -f postgres  # для базы данных
+docker compose logs -f server_app          # для FastAPI
+docker compose logs -f streamlit_app       # для Streamlit
+docker compose logs -f postgres            # для базы данных
 ```
 
 **Остановить проект (с сохранением данных в базе):**

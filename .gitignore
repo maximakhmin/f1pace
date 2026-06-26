@@ -6,3 +6,4 @@ local_cache/
 server_app/__pycache__
 server_app/app.log
 server_app/real_time.txt
+app.log
