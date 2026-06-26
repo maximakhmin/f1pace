@@ -91,6 +91,17 @@ track_layer = pdk.Layer(
     pickable=False
 )
 
+st.html(
+    """
+    <style>
+    [data-testid="stDeckGlJsonChart"] {
+        /* Обрезаем по 2 пикселя с каждой стороны, чтобы спрятать баг рендеринга */
+        clip-path: inset(2px 2px 2px 2px); 
+    }
+    </style>
+    """
+)
+
 if 'f1_raw_positions' not in st.session_state:
     st.session_state.f1_raw_positions = None  # Сюда фоновый поток будет складывать сырой текст от WS
 if 'f1_last_time' not in st.session_state:

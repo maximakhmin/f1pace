@@ -87,6 +87,17 @@ track_layer = pdk.Layer(
 )
 
 
+st.html(
+    """
+    <style>
+    [data-testid="stDeckGlJsonChart"] {
+        /* Обрезаем по 2 пикселя с каждой стороны, чтобы спрятать баг рендеринга */
+        clip-path: inset(2px 2px 2px 2px); 
+    }
+    </style>
+    """
+)
+
 # Оптимизированный интервал для PyDeck
 @st.fragment(run_every=0.25) 
 def render_live_position_pydeck():
