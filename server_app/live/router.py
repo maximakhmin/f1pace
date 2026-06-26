@@ -3,10 +3,11 @@ from live.schemas import TrackMapSchema, RealTimeLapsSchema, TrackCornerSchema, 
 from live.predict import predict_future_laps
 from db import get_db, get_current_session_id
 from typing import List
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+import asyncio
 
 
 logger = logging.getLogger("Server Live")
@@ -93,6 +94,91 @@ async def get_real_time_positions(delay_seconds: int = 10, db: AsyncSession = De
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
         )
+    
+
+@router.websocket("/positions/ws")
+async def websocket_real_time_positions(
+    websocket: WebSocket,
+    delay_seconds: int = 10,
+    refresh_interval: float = 1.0,  # Частота обновления данных (в секундах)
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Принимаем WebSocket соединение
+    await websocket.accept()
+    current_session_id = get_current_session_id()
+    logger.info(f"WebSocket подключение установлено. Сессия: {current_session_id}, delay: {delay_seconds}s")
+    
+    query_select = text("""
+        WITH target_time AS (
+            SELECT time AS t_time FROM real_time LIMIT 1
+        ),
+        ranked_positions AS (
+            SELECT 
+                rtp.driver_number, 
+                d.abbr, 
+                si.color, 
+                rtp.time_utc, 
+                rtp.status, 
+                rtp.x, 
+                rtp.y, 
+                rtp.z,
+                ROW_NUMBER() OVER (
+                    PARTITION BY rtp.driver_number 
+                    ORDER BY ABS(EXTRACT(EPOCH FROM rtp.time_utc) - EXTRACT(EPOCH FROM (tt.t_time - :delay_seconds * INTERVAL '1 second'))) ASC
+                ) as rn
+            FROM real_time_position rtp
+            CROSS JOIN target_time tt
+            LEFT JOIN style_info si ON si.number = rtp.driver_number 
+            LEFT JOIN drivers d ON si.driver_id = d.id
+            WHERE si.session_id = :session_id
+        )
+        SELECT 
+            driver_number, abbr, color, time_utc, status, x, y, z
+        FROM ranked_positions
+        WHERE rn = 1;
+    """)
+
+    query_delete = text("""
+        WITH target_time AS (
+            SELECT time AS t_time FROM real_time LIMIT 1
+        )
+        DELETE FROM real_time_position rtp
+        USING target_time tt
+        WHERE rtp.time_utc < (tt.t_time - 30 * INTERVAL '1 second')
+    """)
+    
+    try:
+        # 2. Запускаем бесконечный цикл отправки данных
+        while True:
+            # Выполняем SELECT
+            result = await db.execute(query_select, {"session_id": current_session_id, "delay_seconds": delay_seconds})
+            rows = result.mappings().all()
+            
+            # Выполняем CLEANUP (DELETE)
+            delete_result = await db.execute(query_delete)
+            await db.commit()
+            
+            # Конвертируем JSON/DateTime в строки/примитивы, чтобы Pydantic/FastAPI корректно проглотил
+            # Используем ваш существующий RealTimePositionSchema для валидации каждой строки
+            validated_positions = [
+                RealTimePositionSchema.model_validate(dict(row)).model_dump(mode="json")
+                for row in rows
+            ]
+            
+            # Отправляем пачку координат клиенту (Streamlit)
+            await websocket.send_json(validated_positions)
+            
+            # Засыпаем на указанный интервал (например, 1 секунда), чтобы не спамить базу данных
+            await asyncio.sleep(refresh_interval)
+            
+    except WebSocketDisconnect:
+        logger.info(f"Клиент отключился от WebSocket (сессия: {current_session_id})")
+        
+    except Exception as e:
+        await db.rollback()
+        logger.exception(f"Ошибка в WebSocket-стриме координат для сессии {current_session_id}: {str(e)}")
+        # Закрываем соединение с кодом ошибки, если что-то пошло не так
+        await websocket.close(code=1011)
     
 
 @router.get(
@@ -248,7 +334,35 @@ async def get_current_live_timestamp(db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Internal server error"
         )
+
+
+@router.websocket("/current-live-timestamp/ws")
+async def websocket_current_live_timestamp(
+    websocket: WebSocket,
+    refresh_interval: float = 0.5
+):
+    logger.info(f"Получен websocket /current-live-timestamp/ws с интервалом {refresh_interval}s")
+    await websocket.accept()
     
+    async for db in get_db(): 
+        try:
+            while True:
+                query = text("SELECT time FROM real_time LIMIT 1")
+                result = await db.execute(query)
+                row = result.mappings().first()
+                
+                if row:
+                    validated_data = LiveTimestampSchema.model_validate(dict(row)).model_dump(mode="json")
+                    await websocket.send_json(validated_data)
+                
+                # Используем переданную частоту в asyncio.sleep
+                await asyncio.sleep(refresh_interval)
+        except WebSocketDisconnect:
+            logger.info("Клиент отключился от вебсокета времени")
+            break
+        except Exception as e:
+            logger.exception(f"Ошибка в цикле вебсокета времени: {e}")
+            break
 
 
 @router.get(

@@ -5,6 +5,7 @@ import os
 load_dotenv()
 
 BASE_URL = f"http://{os.getenv("SERVER_APP_HOST")}:{os.getenv("SERVER_APP_PORT")}"
+WS_BASE_URL = f"ws://{os.getenv("SERVER_APP_HOST")}:{os.getenv("SERVER_APP_PORT")}/live"
 MESSAGE_NO_RESULT = "The results for this session have not been uploaded yet"
 MESSAGE_NO_LIVE_TIME_DATA = "There is no live-time data now, try again later"
 
@@ -26,6 +27,9 @@ page_emulation = st.Page("pages/emulation.py", title="Панель управл�
 page_map = st.Page("pages/real_time_map.py", title="Карта трассы", icon="🗺️")
 page_pace_live = st.Page("pages/pace_real_time.py", title="Аналитика кругов (Live)", icon="📊")
 
+
+page_map_ws = st.Page("pages/real_time_map_ws.py", title="Карта трассы (web-socket)", icon="🏎️", default=False)
+
 # 2. Структурируем страницы по секциям (словарь, где ключ — название секции)
 navigation_structure = {
     "": [page_main],  # Главная будет в самом верху без заголовка секции
@@ -36,7 +40,8 @@ navigation_structure = {
     "Live данные": [
         page_emulation,
         page_map,
-        page_pace_live
+        page_pace_live,
+        page_map_ws
     ]
 }
 
