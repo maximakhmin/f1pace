@@ -36,6 +36,7 @@ if __name__ == "__main__":
         datefmt='%Y-%m-%d %H:%M:%S',
         handlers=[
             logging.FileHandler("app.log"), 
+            logging.StreamHandler(),
         ]
     )
 
