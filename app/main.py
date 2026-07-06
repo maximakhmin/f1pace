@@ -24,11 +24,8 @@ page_results = st.Page("pages/results.py", title="Результаты сесс�
 page_pace = st.Page("pages/pace.py", title="Аналитика кругов", icon="⏱️")
 
 page_emulation = st.Page("pages/emulation.py", title="Панель управления эмуляцией", icon="🎛️")
-page_map = st.Page("pages/real_time_map.py", title="Карта трассы", icon="🗺️")
 page_pace_live = st.Page("pages/pace_real_time.py", title="Аналитика кругов (Live)", icon="📊")
-
-
-page_map_ws = st.Page("pages/real_time_map_ws.py", title="Карта трассы (web-socket)", icon="🏎️", default=False)
+page_map_ws = st.Page("pages/real_time_map_ws.py", title="Карта трассы", icon="🏎️", default=False)
 
 # 2. Структурируем страницы по секциям (словарь, где ключ — название секции)
 navigation_structure = {
@@ -39,9 +36,8 @@ navigation_structure = {
     ],
     "Live данные": [
         page_emulation,
-        page_map,
+        page_map_ws,
         page_pace_live,
-        page_map_ws
     ]
 }
 
